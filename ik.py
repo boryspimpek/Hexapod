@@ -1,6 +1,14 @@
 """
 Kinematyka odwrotna (IK) dla 3-stopniowej nogi hexapoda (Coxa, Femur, Tibia).
 
+Konwencja osi (WAŻNE):
+    - X: kierunek przód/tył robota -> zmiana X obraca staw Coxa (sweep)
+    - Y: kierunek na zewnątrz nogi (w stronę spoczynkowego rozstawienia)
+         -> zmiana Y zmienia wysięg nogi (r), pracują Femur/Tibia
+    - Z: pionowo w górę/w dół
+
+    W spoczynku (theta_coxa = 0) noga jest skierowana wzdłuż osi +Y.
+
 Struktura modułu (same funkcje, bez klas):
     - calculate_leg_ik   -> czyste obliczenia IK (kąty stawów)
     - calculate_joints   -> pozycje 3D punktów nogi na podstawie kątów
@@ -13,13 +21,18 @@ def calculate_leg_ik(x, y, z, l_coxa, l_femur, l_tibia):
     Oblicza kąty (w stopniach) stawów Coxa, Femur, Tibia dla zadanej
     pozycji stopy (x, y, z) względem stawu Coxa.
 
+    Uwaga na konwencję osi: X = przód/tył (obrót coxa), Y = wysięg nogi,
+    Z = pion. Patrz docstring modułu.
+
     Zwraca:
         (theta_coxa_deg, theta_femur_deg, theta_tibia_deg)
 
     Rzuca:
         ValueError, jeśli punkt jest poza zasięgiem nogi.
     """
-    theta_coxa_rad = math.atan2(y, x)
+    # Zamienione miejscami względem "podręcznikowej" wersji (atan2(y, x)),
+    # żeby X sterował obrotem coxa, a nie wysięgiem nogi.
+    theta_coxa_rad = math.atan2(x, y)
     r = math.hypot(x, y)
     r_prime = r - l_coxa
     R = math.hypot(r_prime, z)
@@ -67,11 +80,12 @@ def calculate_joints(x, y, z, l_coxa, l_femur, l_tibia):
     c_rad = math.radians(c)
     f_rad = math.radians(f)
 
+    # Rekonstrukcja spójna z konwencją: X = r*sin(coxa), Y = r*cos(coxa)
     p0 = (0.0, 0.0, 0.0)
-    p_hip = (l_coxa * math.cos(c_rad), l_coxa * math.sin(c_rad), 0.0)
+    p_hip = (l_coxa * math.sin(c_rad), l_coxa * math.cos(c_rad), 0.0)
     p_knee = (
-        p_hip[0] + l_femur * math.cos(f_rad) * math.cos(c_rad),
-        p_hip[1] + l_femur * math.cos(f_rad) * math.sin(c_rad),
+        p_hip[0] + l_femur * math.cos(f_rad) * math.sin(c_rad),
+        p_hip[1] + l_femur * math.cos(f_rad) * math.cos(c_rad),
         p_hip[2] + l_femur * math.sin(f_rad),
     )
     p_foot = (x, y, z)
