@@ -34,8 +34,9 @@ def draw_leg(ax, fig, x, y, z, l_coxa, l_femur, l_tibia):
     # --- Wyczyść stare elementy panelu (tekst + tło) ---
     for txt in fig.texts:
         txt.remove()
-    for patch in list(fig.patches):
-        patch.remove()
+    panel_bg = getattr(fig, "_info_panel", None)
+    if panel_bg is not None:
+        fig.patches.remove(panel_bg)
 
     # --- Tło panelu informacyjnego ---
     panel_x, panel_w = 0.75, 0.22
@@ -47,6 +48,7 @@ def draw_leg(ax, fig, x, y, z, l_coxa, l_femur, l_tibia):
         zorder=0,
     )
     fig.patches.append(panel_bg)
+    fig._info_panel = panel_bg
 
     text_x = panel_x + 0.02
     y_cursor = 0.80

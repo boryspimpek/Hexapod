@@ -241,8 +241,8 @@ def main():
         #   pad:   stick_x = lewo/prawo, stick_y = przód/tył
         #   robot: jx = przód/tył (X), jy = boki (Y)
         
-        jx = -stick_y
-        jy = stick_x
+        jx = stick_y
+        jy = -stick_x
 
         data = collect_trajectory_data(NUM_SAMPLES, step_length, step_height, p_start, jx, jy)
         draw_frame(ax3d, ax2d, data)
