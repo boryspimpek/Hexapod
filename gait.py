@@ -99,34 +99,135 @@ def draw_frame(ax3d, ax2d, data):
     swing_mask = data["phase"] <= data["swing_ratio"]
     stance_mask = ~swing_mask
 
-    ax3d.plot(data["x"][swing_mask], data["y"][swing_mask], data["z"][swing_mask],
-               "o-", color="#1f77b4", linewidth=2.5, markersize=5, label="Faza swing (przenoszenie)")
-    ax3d.plot(data["x"][stance_mask], data["y"][stance_mask], data["z"][stance_mask],
-               "o-", color="#888888", linewidth=2.5, markersize=5, label="Faza stance (podparcie)")
+    # ============================================================
+    # WYKRES 3D — TRAJEKTORIA STOPY
+    # ============================================================
 
-    ax3d.scatter(*data["p_start"], color="green", s=120, marker="^", label="Start")
-    ax3d.scatter(*data["p_end"], color="red", s=120, marker="v", label="Koniec swing")
+    ax3d.plot(
+        data["x"][swing_mask],
+        data["y"][swing_mask],
+        data["z"][swing_mask],
+        "o-",
+        color="#1f77b4",
+        linewidth=2.5,
+        markersize=5,
+        label="Faza swing (przenoszenie)"
+    )
+
+    ax3d.plot(
+        data["x"][stance_mask],
+        data["y"][stance_mask],
+        data["z"][stance_mask],
+        "o-",
+        color="#888888",
+        linewidth=2.5,
+        markersize=5,
+        label="Faza stance (podparcie)"
+    )
+
+    # Punkt początkowy
+    ax3d.scatter(
+        *data["p_start"],
+        color="green",
+        s=120,
+        marker="^",
+        label="Start"
+    )
+
+    # Koniec fazy swing
+    ax3d.scatter(
+        *data["p_end"],
+        color="red",
+        s=120,
+        marker="v",
+        label="Koniec swing"
+    )
+
+    # ============================================================
+    # STAŁE GRANICE OSI
+    # ============================================================
+
+    ax3d.set_xlim(-60, 60)
+    ax3d.set_ylim(40, 180)
+    ax3d.set_zlim(-100, -40)
+
+    # Stałe proporcje przestrzeni 3D
+    ax3d.set_box_aspect((120, 140, 60))
+
+    # ============================================================
+    # OPIS WYKRESU 3D
+    # ============================================================
 
     ax3d.set_title(
         f"Trajektoria stopy — jx={data['jx']:.2f}, jy={data['jy']:.2f}",
-        fontsize=12, fontweight="bold"
+        fontsize=12,
+        fontweight="bold"
     )
+
     ax3d.set_xlabel("X [mm]")
     ax3d.set_ylabel("Y [mm]")
     ax3d.set_zlabel("Z [mm]")
-    ax3d.legend(loc="upper left", fontsize=8)
 
-    ax2d.plot(data["phase"], data["coxa"], "o-", color="black", label="Coxa")
-    ax2d.plot(data["phase"], data["femur"], "o-", color="orange", label="Femur")
-    ax2d.plot(data["phase"], data["tibia"], "o-", color="green", label="Tibia")
-    ax2d.axvline(data["swing_ratio"], color="red", linestyle="--", alpha=0.5,
-                  label=f"Granica swing/stance ({data['swing_ratio']:.2f})")
+    ax3d.legend(
+        loc="upper left",
+        fontsize=8
+    )
 
-    ax2d.set_title("Kąty stawów w cyklu kroku", fontsize=12, fontweight="bold")
+    # ============================================================
+    # WYKRES 2D — KĄTY STAWÓW
+    # ============================================================
+
+    ax2d.plot(
+        data["phase"],
+        data["coxa"],
+        "o-",
+        color="black",
+        label="Coxa"
+    )
+
+    ax2d.plot(
+        data["phase"],
+        data["femur"],
+        "o-",
+        color="orange",
+        label="Femur"
+    )
+
+    ax2d.plot(
+        data["phase"],
+        data["tibia"],
+        "o-",
+        color="green",
+        label="Tibia"
+    )
+
+    # Granica swing / stance
+    ax2d.axvline(
+        data["swing_ratio"],
+        color="red",
+        linestyle="--",
+        alpha=0.5,
+        label=f"Granica swing/stance ({data['swing_ratio']:.2f})"
+    )
+
+    ax2d.set_title(
+        "Kąty stawów w cyklu kroku",
+        fontsize=12,
+        fontweight="bold"
+    )
+
     ax2d.set_xlabel("Faza cyklu [0-1]")
     ax2d.set_ylabel("Kąt [°]")
-    ax2d.grid(True, alpha=0.3)
-    ax2d.legend(loc="best", fontsize=9)
+
+    ax2d.grid(
+        True,
+        alpha=0.3
+    )
+
+    ax2d.legend(
+        loc="best",
+        fontsize=9
+    )
 
 
 def main():
@@ -140,7 +241,7 @@ def main():
         #   pad:   stick_x = lewo/prawo, stick_y = przód/tył
         #   robot: jx = przód/tył (X), jy = boki (Y)
         
-        jx = stick_y
+        jx = -stick_y
         jy = stick_x
 
         data = collect_trajectory_data(NUM_SAMPLES, step_length, step_height, p_start, jx, jy)
