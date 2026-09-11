@@ -13,4 +13,4 @@ calculate_joints(x, y, z, l_coxa, l_femur, l_tibia)  # This will print the joint
 
 
 
-visualize_leg(x, y, z, l_coxa, l_femur, l_tibia)
+# visualize_leg(x, y, z, l_coxa, l_femur, l_tibia)

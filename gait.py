@@ -147,7 +147,8 @@ def draw_frame(ax3d, ax2d, data):
     # STAŁE GRANICE OSI
     # ============================================================
 
-    ax3d.set_xlim(-60, 60)
+    # Odwróć oś X na wykresie, jeśli chcesz odbicie w poziomie
+    ax3d.set_xlim(60, -60)
     ax3d.set_ylim(40, 180)
     ax3d.set_zlim(-100, -40)
 
@@ -242,7 +243,7 @@ def main():
         #   robot: jx = przód/tył (X), jy = boki (Y)
         
         jx = stick_y
-        jy = -stick_x
+        jy = stick_x
 
         data = collect_trajectory_data(NUM_SAMPLES, step_length, step_height, p_start, jx, jy)
         draw_frame(ax3d, ax2d, data)
