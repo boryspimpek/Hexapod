@@ -30,8 +30,6 @@ def calculate_leg_ik(x, y, z, l_coxa, l_femur, l_tibia):
     Rzuca:
         ValueError, jeśli punkt jest poza zasięgiem nogi.
     """
-    # Zamienione miejscami względem "podręcznikowej" wersji (atan2(y, x)),
-    # żeby X sterował obrotem coxa, a nie wysięgiem nogi.
     theta_coxa_rad = math.atan2(x, y)
     r = math.hypot(x, y)
     r_prime = r - l_coxa
@@ -92,4 +90,5 @@ def calculate_joints(x, y, z, l_coxa, l_femur, l_tibia):
 
     points = (p0, p_hip, p_knee, p_foot)
     angles = (c, f, t)
+    print(f"Points: p0={p0}, p_hip={p_hip}, p_knee={p_knee}, p_foot={p_foot}")
     return points, angles, error_msg

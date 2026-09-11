@@ -27,7 +27,7 @@ def draw_leg(ax, fig, x, y, z, l_coxa, l_femur, l_tibia):
     ax.set_zlabel("Oś Z [mm]")
 
     max_range = max(l_coxa + l_femur + l_tibia, abs(x), abs(y), abs(z)) * 1.1
-    ax.set_xlim([-max_range / 2, max_range / 2])
+    ax.set_xlim([max_range / 2, -max_range / 2])  # odwrócenie kierunku osi X
     ax.set_ylim([-max_range / 2, max_range / 2])
     ax.set_zlim([-max_range / 2, max_range / 2])
 
