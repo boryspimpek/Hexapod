@@ -55,10 +55,6 @@ def calculate_leg_ik(x, y, z, l_coxa, l_femur, l_tibia):
 
     theta_femur_rad = alpha + beta
 
-    print(f"alpha={alpha:.3f}, beta={beta:.3f}")
-    print
-    print(f"theta_coxa_rad={theta_coxa_rad:.3f}, theta_femur_rad={theta_femur_rad:.3f}, theta_tibia_rad={theta_tibia_rad:.3f}")
-
     return (
         math.degrees(theta_coxa_rad),
         math.degrees(theta_femur_rad),
@@ -94,5 +90,4 @@ def calculate_joints(x, y, z, l_coxa, l_femur, l_tibia):
 
     points = (p0, p_hip, p_knee, p_foot)
     angles = (c, f, t)
-    print(f"Points: p0={p0}, p_hip={p_hip}, p_knee={p_knee}, p_foot={p_foot}")
     return points, angles, error_msg
