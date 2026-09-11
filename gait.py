@@ -138,13 +138,10 @@ def main():
 
         # Mapowanie z układu pada na układ robota:
         #   pad:   stick_x = lewo/prawo, stick_y = przód/tył
-        #   robot: jx = przód/tył (X), jy = boki (Y)   [konwencja jak ROS REP-103]
-        # Znak przy stick_x zależy od tego, którą stronę uznajesz za "+Y":
-        #   REP-103 (Y w lewo dodatnie)      -> jy = -stick_x
-        #   "prawo = dodatnie" (częste w hobby) -> jy =  stick_x
-        # Wybierz jedną wersję i bądź konsekwentny w całym projekcie.
+        #   robot: jx = przód/tył (X), jy = boki (Y)
+        
         jx = stick_y
-        jy = stick_x  # zakładam REP-103: Y w lewo jest dodatnie
+        jy = stick_x
 
         data = collect_trajectory_data(NUM_SAMPLES, step_length, step_height, p_start, jx, jy)
         draw_frame(ax3d, ax2d, data)

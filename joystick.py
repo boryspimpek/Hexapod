@@ -48,8 +48,6 @@ class PS4Controller:
         if abs(value) < self.deadzone:
             return 0.0
         sign = 1.0 if value > 0 else -1.0
-        # przeskalowanie tak, żeby zaraz za strefą martwą wartość zaczynała
-        # się płynnie od 0, a nie skokiem
         return sign * (abs(value) - self.deadzone) / (1.0 - self.deadzone)
 
     def get_left_stick(self):
@@ -61,8 +59,7 @@ class PS4Controller:
             względem surowego SDL, gdzie wychylenie w dół drążka daje +1)
 
         Zamiana na układ robota (X=przód/tył, Y=boki, zgodnie z konwencją
-        typu ROS REP-103) odbywa się poza tą klasą — patrz komentarz w
-        miejscu wywołania (np. gait_trajectory_live.py).
+        typu ROS REP-103) odbywa się poza tą klasą.
         """
         pygame.event.pump()  # konieczne, aby pygame odświeżył stan osi
 
@@ -81,8 +78,6 @@ class PS4Controller:
 
 
 if __name__ == "__main__":
-    # Tryb diagnostyczny: pokazuje surowe wartości wszystkich osi,
-    # przydatne gdy Twój pad ma inne mapowanie niż zakładane wyżej.
     pygame.init()
     pygame.joystick.init()
 
