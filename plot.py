@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
+import matplotlib.patches as mpatches
 from ik import calculate_joints
 
 def draw_leg(ax, fig, x, y, z, l_coxa, l_femur, l_tibia):
@@ -14,15 +15,13 @@ def draw_leg(ax, fig, x, y, z, l_coxa, l_femur, l_tibia):
     ys = [p[1] for p in points]
     zs = [p[2] for p in points]
 
-    ax.plot(xs, ys, zs, "o-", linewidth=4, markersize=8,
-            color="#1f77b4", label="Segmenty nogi")
-    ax.scatter(*p0, color="black", s=100, label="Coxa")
-    ax.scatter(*p_hip, color="orange", s=80, label="Femur")
-    ax.scatter(*p_knee, color="green", s=80, label="Tibia")
-    ax.scatter(*p_foot, color="red", s=100, label="Stopa")
+    ax.plot(xs, ys, zs, "o-", linewidth=4, markersize=8, color="#1f77b4")
+    ax.scatter(*p0, color="black", s=100)
+    ax.scatter(*p_hip, color="orange", s=80)
+    ax.scatter(*p_knee, color="green", s=80)
+    ax.scatter(*p_foot, color="red", s=100)
 
     ax.set_title("Kinematyka odwrotna nogi Hexapoda", fontsize=13, fontweight="bold", pad=15)
-
     ax.set_xlabel("Oś X [mm]")
     ax.set_ylabel("Oś Y [mm]")
     ax.set_zlabel("Oś Z [mm]")
@@ -32,43 +31,62 @@ def draw_leg(ax, fig, x, y, z, l_coxa, l_femur, l_tibia):
     ax.set_ylim([-max_range / 2, max_range / 2])
     ax.set_zlim([-max_range / 2, max_range / 2])
 
-    # Legenda pozioma, pod wykresem
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.08),
-              ncol=5, fontsize=9, frameon=True, framealpha=0.9)
-
-    # --- Panel informacyjny ---
-    info_lines = [
-        "POZYCJA STOPY [mm]",
-        f"  X = {x:7.1f}",
-        f"  Y = {y:7.1f}",
-        f"  Z = {z:7.1f}",
-        "",
-        "KĄTY STAWÓW [°]",
-        f"  Coxa  = {c:7.1f}",
-        f"  Femur = {f:7.1f}",
-        f"  Tibia = {t:7.1f}",
-    ]
-    info_text = "\n".join(info_lines)
-
+    # --- Wyczyść stare elementy panelu (tekst + tło) ---
     for txt in fig.texts:
         txt.remove()
+    for patch in list(fig.patches):
+        patch.remove()
 
-    fig.text(
-        0.78, 0.55, info_text,
-        fontsize=11, family="monospace",
-        verticalalignment="center",
-        bbox=dict(boxstyle="round,pad=0.6", facecolor="#f0f0f0", edgecolor="#999999"),
+    # --- Tło panelu informacyjnego ---
+    panel_x, panel_w = 0.75, 0.22
+    panel_bg = mpatches.FancyBboxPatch(
+        (panel_x, 0.45), panel_w, 0.40,
+        boxstyle="round,pad=0.015",
+        transform=fig.transFigure,
+        facecolor="#f0f0f0", edgecolor="#999999", linewidth=1,
+        zorder=0,
     )
+    fig.patches.append(panel_bg)
+
+    text_x = panel_x + 0.02
+    y_cursor = 0.80
+    line_h = 0.035
+
+    def add_line(text, color="black", bold=False, size=10):
+        nonlocal y_cursor
+        fig.text(text_x, y_cursor, text, fontsize=size, family="monospace",
+                  color=color, fontweight="bold" if bold else "normal",
+                  verticalalignment="top")
+        y_cursor -= line_h
+
+    def add_legend_row(dot_color, label, value):
+        nonlocal y_cursor
+        fig.text(text_x, y_cursor, "●", fontsize=12, color=dot_color,
+                  verticalalignment="top")
+        fig.text(text_x + 0.025, y_cursor, f"{label:<7}= {value:7.1f}°",
+                  fontsize=10, family="monospace", verticalalignment="top")
+        y_cursor -= line_h
+
+    add_line("POZYCJA STOPY [mm]", bold=True)
+    add_line(f"  X = {x:7.1f}")
+    add_line(f"  Y = {y:7.1f}")
+    add_line(f"  Z = {z:7.1f}")
+    y_cursor -= line_h * 0.5
+
+    add_line("KĄTY STAWÓW [°]", bold=True)
+    add_legend_row("black", "Coxa", c)
+    add_legend_row("orange", "Femur", f)
+    add_legend_row("green", "Tibia", t)
+
 
     if error_msg:
-        fig.text(
-            0.78, 0.30, f"⚠ BŁĄD:\n{error_msg}",
-            fontsize=10, color="darkred", fontweight="bold",
-            wrap=True, verticalalignment="top",
-            bbox=dict(boxstyle="round,pad=0.5", facecolor="#ffe0e0", edgecolor="darkred"),
-        )
+        y_cursor -= line_h * 0.5
+        fig.text(text_x, y_cursor, f"⚠ BŁĄD:\n{error_msg}",
+                  fontsize=10, color="darkred", fontweight="bold",
+                  wrap=True, verticalalignment="top")
 
     fig.canvas.draw_idle()
+
 
 def make_move_callback(position, axis, delta, redraw):
     """Zwraca callback przycisku przesuwający współrzędną `axis` o `delta`."""
@@ -104,7 +122,7 @@ def visualize_leg(x, y, z, l_coxa, l_femur, l_tibia, step=5.0):
     position = {"x": x, "y": y, "z": z}
 
     fig = plt.figure(figsize=(13, 9))
-    plt.subplots_adjust(bottom=0.30, right=0.72)  # więcej miejsca: przyciski + legenda pod spodem
+    plt.subplots_adjust(bottom=0.22, right=0.72)
     ax = fig.add_subplot(111, projection="3d")
 
     def redraw():
