@@ -21,13 +21,8 @@ def draw_leg(ax, fig, x, y, z, l_coxa, l_femur, l_tibia):
     ax.scatter(*p_knee, color="green", s=80, label="Tibia")
     ax.scatter(*p_foot, color="red", s=100, label="Stopa")
 
-    title_error = f"\nBŁĄD: {error_msg}" if error_msg else ""
-    ax.set_title(
-        f"Kinematyka odwrotna nogi Hexapoda\n"
-        f"Poz: X={x:.1f}, Y={y:.1f}, Z={z:.1f} | "
-        f"Kąty: Coxa={c:.1f}°, Femur={f:.1f}°, Tibia={t:.1f}°{title_error}",
-        fontsize=10,
-    )
+    ax.set_title("Kinematyka odwrotna nogi Hexapoda", fontsize=13, fontweight="bold", pad=15)
+
     ax.set_xlabel("Oś X [mm]")
     ax.set_ylabel("Oś Y [mm]")
     ax.set_zlabel("Oś Z [mm]")
@@ -36,10 +31,44 @@ def draw_leg(ax, fig, x, y, z, l_coxa, l_femur, l_tibia):
     ax.set_xlim([-max_range / 2, max_range / 2])
     ax.set_ylim([-max_range / 2, max_range / 2])
     ax.set_zlim([-max_range / 2, max_range / 2])
-    ax.legend(loc="upper left")
+
+    # Legenda pozioma, pod wykresem
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.08),
+              ncol=5, fontsize=9, frameon=True, framealpha=0.9)
+
+    # --- Panel informacyjny ---
+    info_lines = [
+        "POZYCJA STOPY [mm]",
+        f"  X = {x:7.1f}",
+        f"  Y = {y:7.1f}",
+        f"  Z = {z:7.1f}",
+        "",
+        "KĄTY STAWÓW [°]",
+        f"  Coxa  = {c:7.1f}",
+        f"  Femur = {f:7.1f}",
+        f"  Tibia = {t:7.1f}",
+    ]
+    info_text = "\n".join(info_lines)
+
+    for txt in fig.texts:
+        txt.remove()
+
+    fig.text(
+        0.78, 0.55, info_text,
+        fontsize=11, family="monospace",
+        verticalalignment="center",
+        bbox=dict(boxstyle="round,pad=0.6", facecolor="#f0f0f0", edgecolor="#999999"),
+    )
+
+    if error_msg:
+        fig.text(
+            0.78, 0.30, f"⚠ BŁĄD:\n{error_msg}",
+            fontsize=10, color="darkred", fontweight="bold",
+            wrap=True, verticalalignment="top",
+            bbox=dict(boxstyle="round,pad=0.5", facecolor="#ffe0e0", edgecolor="darkred"),
+        )
 
     fig.canvas.draw_idle()
-
 
 def make_move_callback(position, axis, delta, redraw):
     """Zwraca callback przycisku przesuwający współrzędną `axis` o `delta`."""
@@ -74,8 +103,8 @@ def visualize_leg(x, y, z, l_coxa, l_femur, l_tibia, step=5.0):
     """Otwiera interaktywne okno 3D z nogą hexapoda i przyciskami sterującymi."""
     position = {"x": x, "y": y, "z": z}
 
-    fig = plt.figure(figsize=(12, 9))
-    plt.subplots_adjust(bottom=0.25)
+    fig = plt.figure(figsize=(13, 9))
+    plt.subplots_adjust(bottom=0.30, right=0.72)  # więcej miejsca: przyciski + legenda pod spodem
     ax = fig.add_subplot(111, projection="3d")
 
     def redraw():
