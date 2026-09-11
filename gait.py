@@ -144,7 +144,7 @@ def main():
         #   "prawo = dodatnie" (częste w hobby) -> jy =  stick_x
         # Wybierz jedną wersję i bądź konsekwentny w całym projekcie.
         jx = stick_y
-        jy = -stick_x  # zakładam REP-103: Y w lewo jest dodatnie
+        jy = stick_x  # zakładam REP-103: Y w lewo jest dodatnie
 
         data = collect_trajectory_data(NUM_SAMPLES, step_length, step_height, p_start, jx, jy)
         draw_frame(ax3d, ax2d, data)
