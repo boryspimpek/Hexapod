@@ -1,20 +1,24 @@
 import math
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
 from ik import calculate_leg_ik
 from config import l_coxa, l_femur, l_tibia
+from joystick import PS4Controller
 
 step_length = 40.0
 step_height = 20.0
 p_start = (0.0, 110.0, -70.0)
-jx = 1
-jy = 0
+
+NUM_SAMPLES = 30
 
 
 def calc_dir(jx, jy):
     magnitude = math.sqrt(jx**2 + jy**2)
-    step_dir = (jx / magnitude, jy / magnitude)
-    return step_dir
+    if magnitude < 1e-6:
+        # drążek w pozycji neutralnej -> brak kierunku ruchu
+        return (0.0, 0.0)
+    return (jx / magnitude, jy / magnitude)
 
 
 def calculate_hexapod_foot_trajectory(global_phase, step_length, step_height, p_start, jx, jy):
@@ -42,7 +46,7 @@ def calculate_hexapod_foot_trajectory(global_phase, step_length, step_height, p_
 
 
 def collect_trajectory_data(num_samples, step_length, step_height, p_start, jx, jy):
-    """Liczy pozycje i kąty IK dla całego cyklu kroku."""
+    """Liczy pozycje i kąty IK dla całego cyklu kroku, dla BIEŻĄCYCH jx, jy."""
     phases, xs, ys, zs = [], [], [], []
     coxa_deg, femur_deg, tibia_deg = [], [], []
     errors = []
@@ -77,16 +81,21 @@ def collect_trajectory_data(num_samples, step_length, step_height, p_start, jx, 
         "errors": errors,
         "p_start": p_s, "p_end": p_e,
         "swing_ratio": 0.5,
+        "jx": jx, "jy": jy,
     }
 
 
-def plot_trajectory(data):
+def setup_figure():
     fig = plt.figure(figsize=(14, 6))
-
-    # --- Panel 1: trajektoria 3D stopy ---
     ax3d = fig.add_subplot(1, 2, 1, projection="3d")
+    ax2d = fig.add_subplot(1, 2, 2)
+    return fig, ax3d, ax2d
 
-    # Kolorowanie po fazie: swing (niebieski->fiolet) vs stance (szary)
+
+def draw_frame(ax3d, ax2d, data):
+    ax3d.cla()
+    ax2d.cla()
+
     swing_mask = data["phase"] <= data["swing_ratio"]
     stance_mask = ~swing_mask
 
@@ -98,20 +107,18 @@ def plot_trajectory(data):
     ax3d.scatter(*data["p_start"], color="green", s=120, marker="^", label="Start")
     ax3d.scatter(*data["p_end"], color="red", s=120, marker="v", label="Koniec swing")
 
-    ax3d.set_title("Trajektoria stopy w cyklu kroku", fontsize=12, fontweight="bold")
+    ax3d.set_title(
+        f"Trajektoria stopy — jx={data['jx']:.2f}, jy={data['jy']:.2f}",
+        fontsize=12, fontweight="bold"
+    )
     ax3d.set_xlabel("X [mm]")
     ax3d.set_ylabel("Y [mm]")
     ax3d.set_zlabel("Z [mm]")
     ax3d.legend(loc="upper left", fontsize=8)
 
-    # --- Panel 2: kąty stawów w funkcji fazy ---
-    ax2d = fig.add_subplot(1, 2, 2)
-
     ax2d.plot(data["phase"], data["coxa"], "o-", color="black", label="Coxa")
     ax2d.plot(data["phase"], data["femur"], "o-", color="orange", label="Femur")
     ax2d.plot(data["phase"], data["tibia"], "o-", color="green", label="Tibia")
-
-    # Zaznacz granicę swing/stance
     ax2d.axvline(data["swing_ratio"], color="red", linestyle="--", alpha=0.5,
                   label=f"Granica swing/stance ({data['swing_ratio']:.2f})")
 
@@ -121,22 +128,35 @@ def plot_trajectory(data):
     ax2d.grid(True, alpha=0.3)
     ax2d.legend(loc="best", fontsize=9)
 
-    # --- Adnotacja błędów IK, jeśli wystąpiły ---
-    error_phases = [p for p, e in zip(data["phase"], data["errors"]) if e is not None]
-    if error_phases:
-        error_text = f"⚠ Błąd IK dla {len(error_phases)} próbek (fazy: " \
-                     f"{', '.join(f'{p:.2f}' for p in error_phases)})"
-        fig.text(0.5, 0.02, error_text, ha="center", color="darkred",
-                  fontsize=10, fontweight="bold")
-
-    plt.tight_layout(rect=[0, 0.05, 1, 1])
-    plt.show()
-
 
 def main():
-    num_samples = 30  # więcej próbek = gładsza krzywa niż w wersji tekstowej
-    data = collect_trajectory_data(num_samples, step_length, step_height, p_start, jx, jy)
-    plot_trajectory(data)
+    controller = PS4Controller()
+    fig, ax3d, ax2d = setup_figure()
+
+    def update(_frame):
+        stick_x, stick_y = controller.get_left_stick()
+
+        # Mapowanie z układu pada na układ robota:
+        #   pad:   stick_x = lewo/prawo, stick_y = przód/tył
+        #   robot: jx = przód/tył (X), jy = boki (Y)   [konwencja jak ROS REP-103]
+        # Znak przy stick_x zależy od tego, którą stronę uznajesz za "+Y":
+        #   REP-103 (Y w lewo dodatnie)      -> jy = -stick_x
+        #   "prawo = dodatnie" (częste w hobby) -> jy =  stick_x
+        # Wybierz jedną wersję i bądź konsekwentny w całym projekcie.
+        jx = stick_y
+        jy = -stick_x  # zakładam REP-103: Y w lewo jest dodatnie
+
+        data = collect_trajectory_data(NUM_SAMPLES, step_length, step_height, p_start, jx, jy)
+        draw_frame(ax3d, ax2d, data)
+
+    # interval w ms -> co ile odświeżamy odczyt pada i przerysowujemy wykres
+    anim = FuncAnimation(fig, update, interval=100, cache_frame_data=False)
+
+    try:
+        plt.tight_layout()
+        plt.show()
+    finally:
+        controller.close()
 
 
 if __name__ == "__main__":
