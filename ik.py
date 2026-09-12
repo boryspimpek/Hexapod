@@ -48,7 +48,7 @@ def calculate_leg_ik(x, y, z, l_coxa, l_femur, l_tibia):
     cos_tibia = max(-1.0, min(1.0, cos_tibia))
     theta_tibia_rad = math.acos(cos_tibia)
 
-    alpha = math.atan2(z, r_prime)
+    alpha = math.atan2(r_prime, -z)
     cos_beta = (l_femur**2 + R**2 - l_tibia**2) / (2 * l_femur * R)
     cos_beta = max(-1.0, min(1.0, cos_beta))
     beta = math.acos(cos_beta)
@@ -56,9 +56,17 @@ def calculate_leg_ik(x, y, z, l_coxa, l_femur, l_tibia):
     theta_femur_rad = alpha + beta
 
     return (
-        math.degrees(theta_coxa_rad),
+        #### COXA: ####
+        # IK zwraca kąty np + 20, -20 w lewo i w prawo od osi y, dodajemy 90 stopni, 
+        # aby kąt był liczony od zera, a nie od osi y, 
+        # ponieważ takiich wartości spodziewają się serwa
+        90 + math.degrees(theta_coxa_rad), 
+        #### FEMUR: ###
+        # IK zwraca gotowy kąt dla serwa ponieważ mamy alfa + beta
         math.degrees(theta_femur_rad),
-        math.degrees(theta_tibia_rad),
+        #### TIBIA: ###
+        # Serwo jest zamontowane orczykiem i obraca sie w przeciwną stonę niż obliczony kąt, więc odejmujemy od 180 stopni
+        180 - math.degrees(theta_tibia_rad),
     )
 
 
@@ -75,10 +83,9 @@ def calculate_joints(x, y, z, l_coxa, l_femur, l_tibia):
         error_msg = str(e)
         c, f, t = 0.0, 0.0, 0.0
 
-    c_rad = math.radians(c)
-    f_rad = math.radians(f)
+    c_rad = math.radians(c-90) # korekta o 90 stopni ponieważ na wykresie ustawiam kąt od środka
+    f_rad = math.radians(f-90) # korekta o 90 stopni ponieważ na wykresie ustawiam kąt od poziomu, a obliczony jest od pionu
 
-    # Rekonstrukcja spójna z konwencją: X = r*sin(coxa), Y = r*cos(coxa)
     p0 = (0.0, 0.0, 0.0)
     p_hip = (l_coxa * math.sin(c_rad), l_coxa * math.cos(c_rad), 0.0)
     p_knee = (

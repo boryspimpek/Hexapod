@@ -29,13 +29,9 @@ Coordinates and lengths are given in millimeters, and angles are returned in deg
 
 ### Coxa Angle and Radial Distance
 
-![Diagram of the coxa angle and radial distance](<media/Zrzut ekranu 2026-09-11 193820.png>)
-
-### Leg Configuration Above the Y-Axis
-
-![Diagram of the leg configuration above the Y-axis](<media/Zrzut ekranu 2026-09-11 193857.png>)
+![Diagram of the coxa angle and radial distance](<media/3.png>)
 
 ### Leg Configuration Below the Y-Axis
 
-![Diagram of the leg configuration below the Y-axis](<media/below.png>)
+![Diagram of the leg configuration below the Y-axis](<media/4.png>)
 
