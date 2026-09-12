@@ -55,6 +55,8 @@ def calculate_leg_ik(x, y, z, l_coxa, l_femur, l_tibia):
 
     theta_femur_rad = alpha + beta
 
+    # Funkcja zwraca kąty w stopniach, gotowe do użycia w serwach. Uwzględnia kierunek i sposób montażu.
+
     return (
         #### COXA: ####
         # IK zwraca kąty np + 20, -20 w lewo i w prawo od osi y, dodajemy 90 stopni, 
