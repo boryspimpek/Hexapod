@@ -37,5 +37,5 @@ Coordinates and lengths are given in millimeters, and angles are returned in deg
 
 ### Leg Configuration Below the Y-Axis
 
-![Diagram of the leg configuration below the Y-axis](<media/Zrzut ekranu 2026-09-11 193838.png>)
+![Diagram of the leg configuration below the Y-axis](<media/below.png>)
 
