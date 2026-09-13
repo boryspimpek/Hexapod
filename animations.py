@@ -28,7 +28,8 @@ def draw_all_legs_frame(ax3d, all_foot_points):
         ox, oy, oz = get_leg_origin(leg)
         x, y, z = foot_point
 
-        points, angles, error_msg = calculate_joints(x, y, z, l_coxa, l_femur, l_tibia)
+        coxa_servo_id = LEGS[leg]['coxa'][SERVO_ID]
+        points, angles, error_msg = calculate_joints(coxa_servo_id, x, y, z, l_coxa, l_femur, l_tibia)
 
         # przesuwamy punkty nogi o origin danej nogi, żeby były rozmieszczone w przestrzeni
         leg_xs = [p[0] + ox for p in points]

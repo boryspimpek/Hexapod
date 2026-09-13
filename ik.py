@@ -12,6 +12,9 @@ Konwencja osi (WAŻNE):
 
 import math
 
+from config import INVERTED
+from move_servo import find_joint_by_servo_id
+
 def inverse_kinematics(x, y, z, l_coxa, l_femur, l_tibia):
     """
     Oblicza kąty (w stopniach) stawów Coxa, Femur, Tibia dla zadanej
@@ -66,11 +69,10 @@ def inverse_kinematics(x, y, z, l_coxa, l_femur, l_tibia):
     )
 
 
-def calculate_joints(x, y, z, l_coxa, l_femur, l_tibia):
+def calculate_joints(servo_id, x, y, z, l_coxa, l_femur, l_tibia):
     """
     Oblicza pozycje 3D punktów: podstawa, staw biodrowy, kolano, stopa.
-    Jeśli punkt jest poza zasięgiem, kąty są zerowe (noga "złożona"),
-    a informacja o błędzie jest zwracana jako trzeci element krotki.
+    Uwzględnia inwersję w zależności od montażu serwa.
     """
     try:
         c, f, t = inverse_kinematics(x, y, z, l_coxa, l_femur, l_tibia)
@@ -79,8 +81,17 @@ def calculate_joints(x, y, z, l_coxa, l_femur, l_tibia):
         error_msg = str(e)
         c, f, t = 0.0, 0.0, 0.0
 
-    c_rad = math.radians(c-90) # korekta o 90 stopni ponieważ na wykresie ustawiam kąt od środka
-    f_rad = math.radians(f-90) # korekta o 90 stopni ponieważ na wykresie ustawiam kąt od poziomu, a obliczony jest od pionu
+    leg, joint_name, data = find_joint_by_servo_id(servo_id)
+    inverted = data[INVERTED]
+    
+    if inverted == True:
+        c_rad = math.radians(180-(c-90)) # korekta o 90 stopni ponieważ na wykresie ustawiam kąt od środka
+        f_rad = math.radians((f - 90)) # korekta o 90 stopni ponieważ na wykresie ustawiam kąt od poziomu, a obliczony jest od pionu
+        p_foot = (x, -y, z)
+    else:
+        c_rad = math.radians(c-90) # korekta o 90 stopni ponieważ na wykresie ustawiam kąt od środka
+        f_rad = math.radians(f - 90) # korekta o 90 stopni ponieważ na wykresie ustawiam kąt od poziomu, a obliczony jest od pionu
+        p_foot = (x, y, z)
 
     p0 = (0.0, 0.0, 0.0)
     p_hip = (l_coxa * math.sin(c_rad), l_coxa * math.cos(c_rad), 0.0)
@@ -89,7 +100,6 @@ def calculate_joints(x, y, z, l_coxa, l_femur, l_tibia):
         p_hip[1] + l_femur * math.cos(f_rad) * math.cos(c_rad),
         p_hip[2] + l_femur * math.sin(f_rad),
     )
-    p_foot = (x, y, z)
 
     points = (p0, p_hip, p_knee, p_foot)
     angles = (c, f, t)
