@@ -147,7 +147,7 @@ def draw_frame(ax3d, ax2d, data):
     # STAŁE GRANICE OSI
     # ============================================================
 
-    # Odwróć oś X na wykresie, jeśli chcesz odbicie w poziomie
+
     ax3d.set_xlim(60, -60)
     ax3d.set_ylim(40, 180)
     ax3d.set_zlim(-100, -40)
