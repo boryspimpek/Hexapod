@@ -9,6 +9,7 @@ from gait import calculate_trajectory
 from joystick import PS4Controller
 
 NUM_SAMPLES = 30
+servo_id = 4  # inverted == False, dla serwa 4 (coxa prawej przedniej nogi) w config.py
 
 
 def setup_figure():
@@ -21,11 +22,9 @@ def setup_figure():
 def draw_leg_segments(ax3d, foot_point, l_coxa, l_femur, l_tibia):
     """
     Rysuje 3 odcinki nogi (coxa, femur, tibia) od (0,0,0) do foot_point,
-    NA ISTNIEJĄCYM wykresie ax3d (nie czyści go — dokłada się do trajektorii).
-    Zwraca (angles, error_msg), żeby można je było np. opisać w legendzie.
     """
     x, y, z = foot_point
-    points, angles, error_msg = calculate_joints(x, y, z, l_coxa, l_femur, l_tibia)
+    points, angles, error_msg = calculate_joints(servo_id, x, y, z, l_coxa, l_femur, l_tibia)
 
     leg_xs = [p[0] for p in points]
     leg_ys = [p[1] for p in points]
