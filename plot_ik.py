@@ -1,7 +1,8 @@
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
 import matplotlib.patches as mpatches
-from ik import calculate_joints
+from ik import calculate_joints, calculate_leg_ik
+from config import l_coxa, l_femur, l_tibia
 
 def draw_leg(ax, fig, x, y, z, l_coxa, l_femur, l_tibia):
     """Przelicza IK dla podanej pozycji i (od)rysowuje wykres 3D nogi."""
@@ -135,3 +136,15 @@ def visualize_leg(x, y, z, l_coxa, l_femur, l_tibia, step=5.0):
     _buttons = setup_buttons(position, step, redraw)  # noqa: F841 (referencje muszą żyć)
 
     plt.show()
+
+
+def main():
+    x, y, z = 0.0, 160.0, -50.0  
+
+    a, b, c = calculate_leg_ik(x, y, z, l_coxa, l_femur, l_tibia)
+    print(f"Calculated angles: Coxa={a:.1f}°, Femur={b:.1f}°, Tibia={c:.1f}°")
+
+    visualize_leg(x, y, z, l_coxa, l_femur, l_tibia)
+
+if __name__ == "__main__":
+    main()
