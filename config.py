@@ -1,4 +1,4 @@
-# Configuration file for hexapod robot parameters
+# Configuration file for quadruped robot parameters
 
 # Lengths of the leg segments in millimeters
 l_coxa, l_femur, l_tibia = 40.0, 80.0, 120.0

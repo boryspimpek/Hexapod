@@ -1,6 +1,6 @@
 # Hexapod
 
-The project contains inverse kinematics (IK) calculations for a three-segment hexapod leg and a visualization of its movement.
+The project contains inverse kinematics (IK) calculations for a three-segment quadruped leg and a visualization of its movement.
 
 ## Inverse Kinematics
 

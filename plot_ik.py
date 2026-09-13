@@ -22,7 +22,7 @@ def draw_leg(ax, fig, x, y, z, l_coxa, l_femur, l_tibia):
     ax.scatter(*p_knee, color="green", s=80)
     ax.scatter(*p_foot, color="red", s=100)
 
-    ax.set_title("Kinematyka odwrotna nogi Hexapoda", fontsize=13, fontweight="bold", pad=15)
+    ax.set_title("Kinematyka odwrotna nogi Quadrupeda", fontsize=13, fontweight="bold", pad=15)
     ax.set_xlabel("Oś X [mm]")
     ax.set_ylabel("Oś Y [mm]")
     ax.set_zlabel("Oś Z [mm]")
@@ -121,7 +121,7 @@ def setup_buttons(position, step, redraw):
 
 
 def visualize_leg(x, y, z, l_coxa, l_femur, l_tibia, step=5.0):
-    """Otwiera interaktywne okno 3D z nogą hexapoda i przyciskami sterującymi."""
+    """Otwiera interaktywne okno 3D z nogą quadrupeda i przyciskami sterującymi."""
     position = {"x": x, "y": y, "z": z}
 
     fig = plt.figure(figsize=(13, 9))

@@ -1,5 +1,5 @@
 """
-Kinematyka odwrotna (IK) dla 3-stopniowej nogi hexapoda (Coxa, Femur, Tibia).
+Kinematyka odwrotna (IK) dla 3-stopniowej nogi quadrupeda (Coxa, Femur, Tibia).
 
 Konwencja osi (WAŻNE):
     - X: kierunek przód/tył robota -> zmiana X obraca staw Coxa (sweep)
