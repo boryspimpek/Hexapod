@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
 import matplotlib.patches as mpatches
-from ik import calculate_joints, calculate_leg_ik
+from ik import calculate_joints, inverse_kinematics
 from config import l_coxa, l_femur, l_tibia
 
 def draw_leg(ax, fig, x, y, z, l_coxa, l_femur, l_tibia):
@@ -133,7 +133,7 @@ def visualize_leg(x, y, z, l_coxa, l_femur, l_tibia, step=5.0):
                   l_coxa, l_femur, l_tibia)
 
     redraw()
-    _buttons = setup_buttons(position, step, redraw)  # noqa: F841 (referencje muszą żyć)
+    _buttons = setup_buttons(position, step, redraw)  
 
     plt.show()
 
@@ -141,7 +141,7 @@ def visualize_leg(x, y, z, l_coxa, l_femur, l_tibia, step=5.0):
 def main():
     x, y, z = 0.0, 160.0, -50.0  
 
-    a, b, c = calculate_leg_ik(x, y, z, l_coxa, l_femur, l_tibia)
+    a, b, c = inverse_kinematics(x, y, z, l_coxa, l_femur, l_tibia)
     print(f"Calculated angles: Coxa={a:.1f}°, Femur={b:.1f}°, Tibia={c:.1f}°")
 
     visualize_leg(x, y, z, l_coxa, l_femur, l_tibia)

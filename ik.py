@@ -8,21 +8,15 @@ Konwencja osi (WAŻNE):
     - Z: pionowo w górę/w dół
 
     W spoczynku (theta_coxa = 0) noga jest skierowana wzdłuż osi +Y.
-
-Struktura modułu (same funkcje, bez klas):
-    - calculate_leg_ik   -> czyste obliczenia IK (kąty stawów)
-    - calculate_joints   -> pozycje 3D punktów nogi na podstawie kątów
 """
 
 import math
 
-def calculate_leg_ik(x, y, z, l_coxa, l_femur, l_tibia):
+def inverse_kinematics(x, y, z, l_coxa, l_femur, l_tibia):
     """
     Oblicza kąty (w stopniach) stawów Coxa, Femur, Tibia dla zadanej
-    pozycji stopy (x, y, z) względem stawu Coxa.
-
-    Uwaga na konwencję osi: X = przód/tył (obrót coxa), Y = wysięg nogi,
-    Z = pion. Patrz docstring modułu.
+    pozycji stopy (x, y, z) względem stawu Coxa. Kąty są gotowe do użycia w serwach, 
+    uwzględniając kierunek i sposób montażu.
 
     Zwraca:
         (theta_coxa_deg, theta_femur_deg, theta_tibia_deg)
@@ -61,7 +55,7 @@ def calculate_leg_ik(x, y, z, l_coxa, l_femur, l_tibia):
         #### COXA: ####
         # IK zwraca kąty np + 20, -20 w lewo i w prawo od osi y, dodajemy 90 stopni, 
         # aby kąt był liczony od zera, a nie od osi y, 
-        # ponieważ takiich wartości spodziewają się serwa
+        # ponieważ takich wartości spodziewają się serwa
         90 + math.degrees(theta_coxa_rad), 
         #### FEMUR: ###
         # IK zwraca gotowy kąt dla serwa ponieważ mamy alfa + beta
@@ -79,7 +73,7 @@ def calculate_joints(x, y, z, l_coxa, l_femur, l_tibia):
     a informacja o błędzie jest zwracana jako trzeci element krotki.
     """
     try:
-        c, f, t = calculate_leg_ik(x, y, z, l_coxa, l_femur, l_tibia)
+        c, f, t = inverse_kinematics(x, y, z, l_coxa, l_femur, l_tibia)
         error_msg = ""
     except ValueError as e:
         error_msg = str(e)

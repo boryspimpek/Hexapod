@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.animation import FuncAnimation
 from config import l_coxa, l_femur, l_tibia
-from ik import calculate_leg_ik, calculate_joints
+from ik import calculate_joints, inverse_kinematics
 from gait import calculate_trajectory
 from joystick import PS4Controller
 
@@ -225,7 +225,7 @@ def collect_trajectory_data(num_samples, step_length, step_height, p_start, jx, 
         zs.append(z)
 
         try:
-            c, f, t = calculate_leg_ik(x, y, z, l_coxa, l_femur, l_tibia)
+            c, f, t = inverse_kinematics(x, y, z, l_coxa, l_femur, l_tibia)
             coxa_deg.append(c)
             femur_deg.append(f)
             tibia_deg.append(t)
