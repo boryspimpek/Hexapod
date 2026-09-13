@@ -1,9 +1,9 @@
 import math
 import numpy as np
-from time import time
+import time
 from config import LEGS, SERVO_ID, LEG_PHASE_OFFSET, l_coxa, l_femur, l_tibia
 from ik import inverse_kinematics
-from move_servo import set_servo_angle
+# from move_servo import set_servo_angle
 from joystick import PS4Controller
 
 def calc_dir(jx, jy):
@@ -40,13 +40,13 @@ def calculate_trajectory(global_phase, step_length, step_height, p_start, jx, jy
 controller = PS4Controller()
 
 gait_speed = 0.5  # ile "cykli chodu" na sekundę — to jest Twoja "prędkość"
-step_length = 50.0  # długość kroku w mm
+step_length = 40.0  # długość kroku w mm
 step_height = 20.0  # wysokość unoszenia stopy w mm
-p_start = (0, 160, -50)
+p_start = (0, 110, -70)
 
 def main_loop():
     global_time_phase = 0.0
-    dt = 0.02  # 20 ms = 50 Hz, częstość odświeżania serwomechanizmów i odczytu joysticka
+    dt = 1  # 20 ms = 50 Hz, częstość odświeżania serwomechanizmów i odczytu joysticka
 
 
     while True:
@@ -60,10 +60,20 @@ def main_loop():
                 leg_phase, step_length, step_height, p_start, jx, jy
             )
             coxa_angle, femur_angle, tibia_angle = inverse_kinematics(foot_pos[0], foot_pos[1], foot_pos[2], l_coxa, l_femur, l_tibia)
-            
-            set_servo_angle(LEGS[leg]['coxa'][SERVO_ID], coxa_angle)
-            set_servo_angle(LEGS[leg]['femur'][SERVO_ID], femur_angle)
-            set_servo_angle(LEGS[leg]['tibia'][SERVO_ID], tibia_angle)
+
+            print(
+                f"Leg {leg}: Foot pos ({foot_pos[0]:.2f}, {foot_pos[1]:.2f}, {foot_pos[2]:.2f}), "
+                f"Angles: Coxa {coxa_angle:.2f}, Femur {femur_angle:.2f}, Tibia {tibia_angle:.2f}"
+            )
+
+            # set_servo_angle(LEGS[leg]['coxa'][SERVO_ID], coxa_angle)
+            # set_servo_angle(LEGS[leg]['femur'][SERVO_ID], femur_angle)
+            # set_servo_angle(LEGS[leg]['tibia'][SERVO_ID], tibia_angle)
+
+        print("================================================================================================")
         
         global_time_phase = (global_time_phase + gait_speed * dt) % 1.0
         time.sleep(dt)
+        
+if __name__ == "__main__":
+    main_loop()
