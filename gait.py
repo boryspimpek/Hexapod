@@ -1,10 +1,12 @@
 import math
 import numpy as np
 import time
-from config import LEGS, SERVO_ID, LEG_PHASE_OFFSET, l_coxa, l_femur, l_tibia
+from config import LEGS, SERVO_ID, LEG_PHASE_OFFSET, l_coxa, l_femur, l_tibia, gait_speed, step_length, step_height, p_start
 from ik import inverse_kinematics
 # from move_servo import set_servo_angle
 from joystick import PS4Controller
+
+controller = PS4Controller()
 
 def calc_dir(jx, jy):
     magnitude = math.sqrt(jx**2 + jy**2)
@@ -37,17 +39,10 @@ def calculate_trajectory(global_phase, step_length, step_height, p_start, jx, jy
 
     return (pos_x, pos_y, pos_z), (p_start, p_end)
 
-controller = PS4Controller()
-
-gait_speed = 0.5  # ile "cykli chodu" na sekundę — to jest Twoja "prędkość"
-step_length = 40.0  # długość kroku w mm
-step_height = 20.0  # wysokość unoszenia stopy w mm
-p_start = (0, 110, -70)
 
 def main_loop():
     global_time_phase = 0.0
     dt = 1  # 20 ms = 50 Hz, częstość odświeżania serwomechanizmów i odczytu joysticka
-
 
     while True:
         stick_x, stick_y = controller.get_left_stick()

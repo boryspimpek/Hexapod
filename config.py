@@ -2,6 +2,12 @@
 
 l_coxa, l_femur, l_tibia = 40.0, 80.0, 120.0
 
+gait_speed = 0.5  # ile "cykli chodu" na sekundę — to jest Twoja "prędkość"
+step_length = 40.0  # długość kroku w mm
+step_height = 20.0  # wysokość unoszenia stopy w mm
+p_start = (0, 110, -70)
+
+
 # Indeksy pól w krotce (servo_id, inverted, limits, trim)
 SERVO_ID, INVERTED, LIMITS, TRIM = 0, 1, 2, 3
 
@@ -33,4 +39,11 @@ LEG_PHASE_OFFSET = {
     'rf': 0.5,
     'lr': 0.5,
     'rr': 0.0,
+}
+
+LEG_ORIGINS = {
+    "lf":  ( 80,  60, 0),
+    "rf": ( 80, -60, 0),
+    "lr":    (  0,  70, 0),
+    "rr":   (  0, -70, 0),
 }

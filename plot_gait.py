@@ -3,14 +3,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.animation import FuncAnimation
-from config import l_coxa, l_femur, l_tibia
+from config import l_coxa, l_femur, l_tibia, step_length, step_height, p_start
 from ik import calculate_joints, inverse_kinematics
 from gait import calculate_trajectory
 from joystick import PS4Controller
-
-step_length = 40.0
-step_height = 20.0
-p_start = (0.0, 110.0, -70.0)
 
 NUM_SAMPLES = 30
 
