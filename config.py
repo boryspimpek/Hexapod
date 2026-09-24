@@ -1,11 +1,11 @@
 # Configuration file for quadruped robot parameters
 
-l_coxa, l_femur, l_tibia = 40.0, 80.0, 120.0
+l_coxa, l_femur, l_tibia = 43.73, 100.0, 149.10
 
 gait_speed = 0.5  # ile "cykli chodu" na sekundę — to jest Twoja "prędkość"
 step_length = 40.0  # długość kroku w mm
 step_height = 40.0  # wysokość unoszenia stopy w mm
-p_start = (0, 160, -70)
+p_start = (0, 165, -70)  # pozycja startowa stopy w mm (x, y, z) w układzie współrzędnych nogi
 
 
 # Indeksy pól w krotce (servo_id, inverted, limits, trim)
@@ -18,9 +18,9 @@ LEGS = {
         'tibia': (3,  True,  (0, 180), 0.0),
     },
     'rf': {
-        'coxa':  (4,  False, (0, 180), 0.0),
-        'femur': (5,  False, (0, 180), 0.0),
-        'tibia': (6,  False, (0, 180), 0.0),
+        'coxa':  (4,  False, (0, 110), 0.0),
+        'femur': (5,  False, (90, 180), 0.0),
+        'tibia': (6,  False, (0, 130), 0.0),
     },
     'lr': {
         'coxa':  (7,  True,  (0, 180), 0.0),
@@ -28,9 +28,9 @@ LEGS = {
         'tibia': (9,  True,  (0, 180), 0.0),
     },
     'rr': {
-        'coxa':  (10, False, (0, 180), 0.0),
-        'femur': (11, False, (0, 180), 0.0),
-        'tibia': (12, False, (0, 180), 0.0),
+        'coxa':  (10, False, (0, 110), 0.0),
+        'femur': (11, False, (90, 180), 0.0),
+        'tibia': (12, False, (0, 130), 0.0),
     },
 }
 

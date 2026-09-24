@@ -9,7 +9,7 @@ from gait import calculate_trajectory
 from joystick import PS4Controller
 
 NUM_SAMPLES = 30
-servo_id = 4  # inverted == False, dla serwa 4 (coxa prawej przedniej nogi) w config.py
+servo_id = 4  # podaj serwo_id dla nogi, którą chcesz wizualizować (np. 4 dla prawej przedniej nogi)
 
 
 def setup_figure():

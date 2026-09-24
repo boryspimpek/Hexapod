@@ -42,7 +42,7 @@ def calculate_trajectory(global_phase, step_length, step_height, p_start, jx, jy
 
 def main_loop():
     global_time_phase = 0.0
-    dt = 1  # 20 ms = 50 Hz, częstość odświeżania serwomechanizmów i odczytu joysticka
+    dt = 0.02  # 20 ms = 50 Hz, częstość odświeżania serwomechanizmów i odczytu joysticka
 
     while True:
         stick_x, stick_y = controller.get_left_stick()
@@ -56,10 +56,10 @@ def main_loop():
             )
             coxa_angle, femur_angle, tibia_angle = inverse_kinematics(foot_pos[0], foot_pos[1], foot_pos[2], l_coxa, l_femur, l_tibia)
 
-            # print(
-            #     f"Leg {leg}: Foot pos ({foot_pos[0]:.2f}, {foot_pos[1]:.2f}, {foot_pos[2]:.2f}), "
-            #     f"Angles: Coxa {coxa_angle:.2f}, Femur {femur_angle:.2f}, Tibia {tibia_angle:.2f}"
-            # )
+            print(
+                f"Leg {leg}: Foot pos ({foot_pos[0]:.2f}, {foot_pos[1]:.2f}, {foot_pos[2]:.2f}), "
+                f"Angles: Coxa {coxa_angle:.2f}, Femur {femur_angle:.2f}, Tibia {tibia_angle:.2f}"
+            )
 
             set_servo_angle(LEGS[leg]['coxa'][SERVO_ID], coxa_angle)
             set_servo_angle(LEGS[leg]['femur'][SERVO_ID], femur_angle)
