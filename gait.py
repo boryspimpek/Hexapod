@@ -69,37 +69,63 @@ def send_servos(angles: dict):
     sock.sendto(json.dumps(payload).encode(), ESP)
 
 
+import time
+from config import LEGS, SERVO_ID, LEG_PHASE_OFFSET, INVERTED, LIMITS, TRIM, l_coxa, l_femur, l_tibia, gait_speed, step_length, step_height, p_start
+from ik import inverse_kinematics
+from joystick import PS4Controller
+
 def main_loop():
     global_time_phase = 0.0
-    dt = 0.02  # 50 Hz
+    
+    # Ustalamy co ile sekund chcemy wysyłać paczkę do ESP32
+    SEND_INTERVAL = 0.02
+    last_send_time = time.time()
+    
+    # Ostatnia znana faza, żeby wyliczyć realny upływ czasu dla chodu
+    last_phase_time = time.time()
+
+    # positions = 1 / (gait_speed * SEND_INTERVAL)
+    # print(f"Positions per gait cycle: {positions:.2f}")
 
     while True:
+        # 1. Pętla działa szybko - może na bieżąco czytać joystick lub inne rzeczy
         stick_x, stick_y = controller.get_left_stick()
         jx = stick_y
         jy = stick_x
 
-        angles_to_send = {}
+        current_time = time.time()
 
-        for leg in LEGS:
-            leg_phase = (global_time_phase + LEG_PHASE_OFFSET[leg]) % 1.0
-            foot_pos, _ = calculate_trajectory(
-                leg_phase, step_length, step_height, p_start, jx, jy
-            )
-            coxa_angle, femur_angle, tibia_angle = inverse_kinematics(
-                foot_pos[0], foot_pos[1], foot_pos[2], l_coxa, l_femur, l_tibia
-            )
+        # 2. Sprawdzamy, czy minął już czas na wysłanie kolejnej klatki ruchu do ESP32
+        if current_time - last_send_time >= SEND_INTERVAL:
+            # Ile czasu minęło od ostatniego ruchu serw?
+            elapsed = current_time - last_phase_time
+            last_phase_time = current_time
+            last_send_time = current_time
 
-            for joint, angle in (("coxa", coxa_angle), ("femur", femur_angle), ("tibia", tibia_angle)):
-                sid = LEGS[leg][joint][SERVO_ID]
-                if sid in ACTIVE_SERVO_IDS:
-                    angles_to_send[sid] = correct_angle(sid, angle)
+            angles_to_send = {}
 
-        send_servos(angles_to_send)
-        print(angles_to_send)
+            for leg in LEGS:
+                leg_phase = (global_time_phase + LEG_PHASE_OFFSET[leg]) % 1.0
+                foot_pos, _ = calculate_trajectory(
+                    leg_phase, step_length, step_height, p_start, jx, jy
+                )
+                coxa_angle, femur_angle, tibia_angle = inverse_kinematics(
+                    foot_pos[0], foot_pos[1], foot_pos[2], l_coxa, l_femur, l_tibia
+                )
 
-        global_time_phase = (global_time_phase + gait_speed * dt) % 1.0
-        time.sleep(dt)
+                for joint, angle in (("coxa", coxa_angle), ("femur", femur_angle), ("tibia", tibia_angle)):
+                    sid = LEGS[leg][joint][SERVO_ID]
+                    if sid in ACTIVE_SERVO_IDS:
+                        angles_to_send[sid] = correct_angle(sid, angle)
 
+            send_servos(angles_to_send)
+            # print(angles_to_send)
+
+            # Faza rośnie o tyle, ile realnie minęło czasu pomnożone przez prędkość
+            global_time_phase = (global_time_phase + gait_speed * elapsed) % 1.0
+
+        # 3. Krótki sleep 
+        time.sleep(0.02)
 
 if __name__ == "__main__":
     main_loop()
