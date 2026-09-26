@@ -3,7 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.animation import FuncAnimation
-from config import l_coxa, l_femur, l_tibia, step_length, step_height, p_start
+from matplotlib.widgets import Slider
+from config import l_coxa, l_femur, l_tibia
 from ik import calculate_joints, inverse_kinematics
 from gait import calculate_trajectory
 from joystick import PS4Controller
@@ -11,12 +12,46 @@ from joystick import PS4Controller
 NUM_SAMPLES = 30
 servo_id = 4  # podaj serwo_id dla nogi, którą chcesz wizualizować (np. 4 dla prawej przedniej nogi)
 
+# Wartości początkowe (startowe) — dalej sterowane suwakami w oknie wykresu
+step_length = 80.0  # długość kroku w mm
+step_height = 40.0  # wysokość unoszenia stopy w mm
+p_start = (-60, 165, -100)  # pozycja startowa stopy w mm (x, y, z) w układzie współrzędnych nogi
+
+# Zakresy suwaków — dostosuj do swojego robota, jeśli trzeba
+STEP_LENGTH_MIN, STEP_LENGTH_MAX = 20.0, 150.0
+STEP_HEIGHT_MIN, STEP_HEIGHT_MAX = 5.0, 80.0
+
 
 def setup_figure():
-    fig = plt.figure(figsize=(14, 6))
+    fig = plt.figure(figsize=(14, 7))
+    # Zostawiamy miejsce na dole na suwaki
+    fig.subplots_adjust(bottom=0.22)
     ax3d = fig.add_subplot(1, 2, 1, projection="3d")
     ax2d = fig.add_subplot(1, 2, 2)
     return fig, ax3d, ax2d
+
+
+def setup_sliders(fig):
+    """Tworzy suwaki do sterowania step_length i step_height."""
+    ax_step_length = fig.add_axes([0.15, 0.10, 0.3, 0.03])
+    ax_step_height = fig.add_axes([0.15, 0.05, 0.3, 0.03])
+
+    slider_step_length = Slider(
+        ax_step_length,
+        "Step length [mm]",
+        STEP_LENGTH_MIN,
+        STEP_LENGTH_MAX,
+        valinit=step_length,
+    )
+    slider_step_height = Slider(
+        ax_step_height,
+        "Step height [mm]",
+        STEP_HEIGHT_MIN,
+        STEP_HEIGHT_MAX,
+        valinit=step_height,
+    )
+
+    return slider_step_length, slider_step_height
 
 
 def draw_leg_segments(ax3d, foot_point, l_coxa, l_femur, l_tibia):
@@ -131,8 +166,9 @@ def draw_frame(ax3d, ax2d, data, foot_point=None):
     # ============================================================
 
     ax3d.set_title(
-        f"Trajektoria stopy — jx={data['jx']:.2f}, jy={data['jy']:.2f}",
-        fontsize=12,
+        f"Trajektoria stopy — jx={data['jx']:.2f}, jy={data['jy']:.2f}, "
+        f"step_length={data['step_length']:.0f}mm, step_height={data['step_height']:.0f}mm",
+        fontsize=11,
         fontweight="bold"
     )
 
@@ -239,12 +275,15 @@ def collect_trajectory_data(num_samples, step_length, step_height, p_start, jx, 
         "p_start": p_s, "p_end": p_e,
         "swing_ratio": 0.5,
         "jx": jx, "jy": jy,
+        "step_length": step_length,
+        "step_height": step_height,
     }
 
 
 def main():
     controller = PS4Controller()
     fig, ax3d, ax2d = setup_figure()
+    slider_step_length, slider_step_height = setup_sliders(fig)
 
     # Faza animacji nogi — porusza się cyklicznie po aktualnej trajektorii,
     # niezależnie od tego jak często zmienia się pozycja joysticka.
@@ -261,12 +300,18 @@ def main():
         jx = stick_y
         jy = stick_x
 
-        data = collect_trajectory_data(NUM_SAMPLES, step_length, step_height, p_start, jx, jy)
+        # Bieżące wartości ze suwaków (można je zmieniać w trakcie działania)
+        current_step_length = slider_step_length.val
+        current_step_height = slider_step_height.val
+
+        data = collect_trajectory_data(
+            NUM_SAMPLES, current_step_length, current_step_height, p_start, jx, jy
+        )
 
         # Bieżąca pozycja stopy — na potrzeby narysowania nogi na trajektorii
         anim_phase["value"] = (anim_phase["value"] + phase_step) % 1.0
         foot_point, _ = calculate_trajectory(
-            anim_phase["value"], step_length, step_height, p_start, jx, jy
+            anim_phase["value"], current_step_length, current_step_height, p_start, jx, jy
         )
 
         draw_frame(ax3d, ax2d, data, foot_point=foot_point)
@@ -275,7 +320,6 @@ def main():
     anim = FuncAnimation(fig, update, interval=100, cache_frame_data=False)
 
     try:
-        plt.tight_layout()
         plt.show()
     finally:
         controller.close()
