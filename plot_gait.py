@@ -10,7 +10,7 @@ from gait import calculate_trajectory
 from joystick import PS4Controller
 
 NUM_SAMPLES = 30
-servo_id = 4  # podaj serwo_id dla nogi, którą chcesz wizualizować (np. 4 dla prawej przedniej nogi)
+servo_id = 10  # podaj serwo_id dla nogi, którą chcesz wizualizować (np. 4 dla prawej przedniej nogi)
 
 # Wartości początkowe (startowe) — dalej sterowane suwakami w oknie wykresu
 step_length = 80.0  # długość kroku w mm

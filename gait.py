@@ -69,11 +69,6 @@ def send_servos(angles: dict):
     sock.sendto(json.dumps(payload).encode(), ESP)
 
 
-import time
-from config import LEGS, SERVO_ID, LEG_PHASE_OFFSET, INVERTED, LIMITS, TRIM, l_coxa, l_femur, l_tibia, gait_speed, step_length, step_height, p_start
-from ik import inverse_kinematics
-from joystick import PS4Controller
-
 def main_loop():
     global_time_phase = 0.0
     
@@ -83,9 +78,6 @@ def main_loop():
     
     # Ostatnia znana faza, żeby wyliczyć realny upływ czasu dla chodu
     last_phase_time = time.time()
-
-    # positions = 1 / (gait_speed * SEND_INTERVAL)
-    # print(f"Positions per gait cycle: {positions:.2f}")
 
     while True:
         # 1. Pętla działa szybko - może na bieżąco czytać joystick lub inne rzeczy
