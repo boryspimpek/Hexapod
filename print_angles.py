@@ -1,5 +1,4 @@
-# dump_cycle.py
-import csv
+
 from config import (LEGS, SERVO_ID, LEG_PHASE_OFFSET,
                     l_coxa, l_femur, l_tibia, step_length, step_height, p_start)
 from ik import inverse_kinematics
@@ -45,11 +44,3 @@ for sid in ids:
     vals = [by_servo[i][sid][0] for i in range(N_STEPS)]
     clip = sum(by_servo[i][sid][1] for i in range(N_STEPS))
     print(f"S{sid:<5} {min(vals):6.1f}  {max(vals):6.1f}  {max(vals)-min(vals):6.1f}   {clip}")
-
-# ---- CSV ----
-with open("cycle.csv", "w", newline="") as f:
-    w = csv.writer(f)
-    w.writerow(["phase", "leg", "x", "y", "z",
-                "coxa_raw", "coxa_out", "femur_raw", "femur_out", "tibia_raw", "tibia_out"])
-    w.writerows(rows)
-print("\nZapisano cycle.csv")
