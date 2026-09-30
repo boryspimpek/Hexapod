@@ -5,8 +5,16 @@ l_coxa, l_femur, l_tibia = 43.73, 100.0, 149.10
 gait_speed = 0.5  # ile "cykli chodu" na sekundę — to jest "prędkość"
 step_length = 40.0  # długość kroku w mm
 step_height = 40.0  # wysokość unoszenia stopy w mm
-p_start = (0, 165, -40)  # pozycja startowa stopy w mm (x, y, z) w układzie współrzędnych nogi
+ramp_time = 0.5  # czas narastania/zanikania prędkości chodu w sekundach
+stick_deadzone = 0.1  # strefa martwa joystika
 
+# Pozycja startowa stopy [mm] (x, y, z) w układzie współrzędnych danej nogi
+p_start = {
+    'lf': (0, 165, -40),
+    'rf': (0, 165, -40),
+    'lr': (0, 165, -40),
+    'rr': (0, 165, -40),
+}
 
 # Indeksy pól w krotce (servo_id, inverted, limits, trim)
 SERVO_ID, INVERTED, LIMITS, TRIM = 0, 1, 2, 3
