@@ -53,7 +53,6 @@ def inverse_kinematics(x, y, z, l_coxa, l_femur, l_tibia):
     theta_femur_rad = alpha + beta
 
     # Funkcja zwraca kąty w stopniach, gotowe do użycia w serwach. Uwzględnia kierunek i sposób montażu.
-
     return (
         #### COXA: ####
         # IK zwraca kąty np + 20, -20 w lewo i w prawo od osi y, dodajemy 90 stopni, 
@@ -70,9 +69,9 @@ def inverse_kinematics(x, y, z, l_coxa, l_femur, l_tibia):
         180 - math.degrees(theta_tibia_rad) - 25 # odejmujemy 25 ponieważ noga jest krzywa, idzie jak łuk,
     )
 
-
 def calculate_joints(servo_id, x, y, z, l_coxa, l_femur, l_tibia):
     """
+    Używana w celu wizualizacji w matplotlib, aby pokazać jak noga się porusza w przestrzeni 3D.
     Oblicza pozycje 3D punktów: podstawa, staw biodrowy, kolano, stopa.
     Uwzględnia inwersję w zależności od montażu serwa.
     """

@@ -1,48 +1,14 @@
 # dump_cycle.py
-import math, csv
-from config import (LEGS, SERVO_ID, LEG_PHASE_OFFSET, INVERTED, LIMITS, TRIM,
+import csv
+from config import (LEGS, SERVO_ID, LEG_PHASE_OFFSET,
                     l_coxa, l_femur, l_tibia, step_length, step_height, p_start)
 from ik import inverse_kinematics
+from gait import JOINTS, calculate_trajectory, correct_angle, apply_offsets
 
 N_STEPS = 20          # ile próbek na cały cykl
 JX, JY = 1.0, 0.0     # symulowane wychylenie drążka (1,0 = do przodu)
 
-JOINTS = {d[SERVO_ID]: d for j in LEGS.values() for d in j.values()}
-
-
-def calc_dir(jx, jy):
-    m = math.hypot(jx, jy)
-    return (0.0, 0.0) if m < 1e-6 else (jx / m, jy / m)
-
-
-def calculate_trajectory(phase, step_length, step_height, p_start, jx, jy):
-    swing = 0.5
-    d = calc_dir(jx, jy)
-    half = step_length / 2.0
-    p_front = (p_start[0] + d[0] * half, p_start[1] + d[1] * half, p_start[2])
-    p_back = (p_start[0] - d[0] * half, p_start[1] - d[1] * half, p_start[2])
-    if phase < swing:
-        t = phase / swing
-        return (p_back[0] + (p_front[0] - p_back[0]) * t,
-                p_back[1] + (p_front[1] - p_back[1]) * t,
-                p_start[2] + step_height * math.sin(t * math.pi))
-    t = (phase - swing) / (1.0 - swing)
-    return (p_front[0] + (p_back[0] - p_front[0]) * t,
-            p_front[1] + (p_back[1] - p_front[1]) * t,
-            p_start[2])
-
-
-def correct_angle(servo_id, angle_deg):
-    """Zwraca (kąt po korekcie i limitach, czy został przycięty)."""
-    data = JOINTS[servo_id]
-    lo, hi = data[LIMITS]
-    a = (180 - angle_deg) if data[INVERTED] else angle_deg
-    a += data[TRIM]
-    clamped = max(lo, min(hi, a))
-    return clamped, clamped != a
-
-
-rows = []            # do CSV: jedna linia = (faza, noga, x,y,z, coxa,femur,tibia surowe, serwa)
+rows = []            # do CSV: jedna linia = (faza, noga, x,y,z, kąty surowe i wysyłane)
 by_servo = {}        # {faza_idx: {servo_id: (kąt, przycięty)}}
 
 for i in range(N_STEPS):
@@ -55,11 +21,12 @@ for i in range(N_STEPS):
         out = []
         for joint, ang in zip(("coxa", "femur", "tibia"), raw):
             sid = LEGS[leg][joint][SERVO_ID]
-            final, clamped = correct_angle(sid, ang)
+            final = correct_angle(sid, ang)
+            clamped = final != apply_offsets(sid, ang)
             by_servo[i][sid] = (final, clamped)
-            out.append((sid, ang, final, clamped))
+            out.append((sid, ang, final))
         rows.append([round(phase, 3), leg, round(x, 1), round(y, 1), round(z, 1)] +
-                    [v for _, r, f, _ in out for v in (round(r, 1), round(f, 1))])
+                    [v for _, r, f in out for v in (round(r, 1), round(f, 1))])
 
 # ---- Tabela 1: wszystkie serwa naraz (wiersz = faza) ----
 ids = sorted(JOINTS)

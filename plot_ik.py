@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
 import matplotlib.patches as mpatches
 from ik import calculate_joints, inverse_kinematics
-from config import l_coxa, l_femur, l_tibia, p_start
+from config import l_coxa, l_femur, l_tibia
 
 """
 Rysuje pojedynczą nogę quadrupeda w 3D i pozwala interaktywnie zmieniać pozycję stopy (x, y, z) za pomocą przycisków.
@@ -11,7 +11,8 @@ aby uwzględnić inwersję w zależności od montażu serwa.
 
 """
 
-servo_id = 3 # podaj serwo_id dla nogi, którą chcesz wizualizować 
+p_start = (0, 165, -40)  # pozycja startowa stopy w mm (x, y, z) w układzie współrzędnych nogi
+servo_id = 2 # podaj serwo_id dla nogi, którą chcesz wizualizować 
 
 def draw_leg(ax, fig, x, y, z, l_coxa, l_femur, l_tibia):
     points, angles, error_msg = calculate_joints(servo_id, x, y, z, l_coxa, l_femur, l_tibia)
