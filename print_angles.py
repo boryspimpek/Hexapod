@@ -18,15 +18,17 @@ def calc_dir(jx, jy):
 def calculate_trajectory(phase, step_length, step_height, p_start, jx, jy):
     swing = 0.5
     d = calc_dir(jx, jy)
-    p_end = (p_start[0] + d[0] * step_length, p_start[1] + d[1] * step_length, p_start[2])
+    half = step_length / 2.0
+    p_front = (p_start[0] + d[0] * half, p_start[1] + d[1] * half, p_start[2])
+    p_back = (p_start[0] - d[0] * half, p_start[1] - d[1] * half, p_start[2])
     if phase < swing:
         t = phase / swing
-        return (p_start[0] + (p_end[0] - p_start[0]) * t,
-                p_start[1] + (p_end[1] - p_start[1]) * t,
+        return (p_back[0] + (p_front[0] - p_back[0]) * t,
+                p_back[1] + (p_front[1] - p_back[1]) * t,
                 p_start[2] + step_height * math.sin(t * math.pi))
     t = (phase - swing) / (1.0 - swing)
-    return (p_end[0] + (p_start[0] - p_end[0]) * t,
-            p_end[1] + (p_start[1] - p_end[1]) * t,
+    return (p_front[0] + (p_back[0] - p_front[0]) * t,
+            p_front[1] + (p_back[1] - p_front[1]) * t,
             p_start[2])
 
 
@@ -48,7 +50,7 @@ for i in range(N_STEPS):
     by_servo[i] = {}
     for leg in LEGS:
         lp = (phase + LEG_PHASE_OFFSET[leg]) % 1.0
-        x, y, z = calculate_trajectory(lp, step_length, step_height, p_start, JX, JY)
+        x, y, z = calculate_trajectory(lp, step_length, step_height, p_start[leg], JX, JY)
         raw = inverse_kinematics(x, y, z, l_coxa, l_femur, l_tibia)
         out = []
         for joint, ang in zip(("coxa", "femur", "tibia"), raw):
