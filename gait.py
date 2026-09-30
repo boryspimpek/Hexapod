@@ -9,7 +9,7 @@ ESP = ("192.168.0.115", 8888)
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 # Serwa, które faktycznie są podpięte do ESP32 (dopisuj kolejne w miarę rozbudowy)
-ACTIVE_SERVO_IDS = {10, 11, 12}
+ACTIVE_SERVO_IDS = {1, 2, 3, 4, 5, 6}
 
 controller = PS4Controller()
 
@@ -58,6 +58,8 @@ def correct_angle(servo_id: int, angle_deg: float) -> float:
 
     angle = (180 - angle_deg) if data[INVERTED] else angle_deg
     angle += data[TRIM]
+    if angle < limits[0] or angle > limits[1]:
+        print(f"Serwo {servo_id}: kąt {angle:.1f}° poza limitem [{limits[0]}, {limits[1]}]°")
     return max(limits[0], min(limits[1], angle))
 
 
@@ -111,7 +113,6 @@ def main_loop():
                         angles_to_send[sid] = correct_angle(sid, angle)
 
             send_servos(angles_to_send)
-            # print(angles_to_send)
 
             # Faza rośnie o tyle, ile realnie minęło czasu pomnożone przez prędkość
             global_time_phase = (global_time_phase + gait_speed * elapsed) % 1.0

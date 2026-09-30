@@ -2,10 +2,10 @@
 
 l_coxa, l_femur, l_tibia = 43.73, 100.0, 149.10
 
-gait_speed = 1.0  # ile "cykli chodu" na sekundę — to jest "prędkość"
-step_length = 60.0  # długość kroku w mm
+gait_speed = 0.5  # ile "cykli chodu" na sekundę — to jest "prędkość"
+step_length = 40.0  # długość kroku w mm
 step_height = 40.0  # wysokość unoszenia stopy w mm
-p_start = (-120, 165, -40)  # pozycja startowa stopy w mm (x, y, z) w układzie współrzędnych nogi
+p_start = (0, 165, -40)  # pozycja startowa stopy w mm (x, y, z) w układzie współrzędnych nogi
 
 
 # Indeksy pól w krotce (servo_id, inverted, limits, trim)
@@ -13,24 +13,24 @@ SERVO_ID, INVERTED, LIMITS, TRIM = 0, 1, 2, 3
 
 LEGS = {
     'lf': {
-        'coxa':  (1,  False,  (0, 180), 0.0),
-        'femur': (2,  False,  (0, 180), 0.0),
-        'tibia': (3,  False,  (0, 180), 0.0),
+        'coxa':  (1,  False,  (50, 110), 0.0),
+        'femur': (2,  False,  (90, 180), 0.0),
+        'tibia': (3,  False,  (0, 130), 0.0),
     },
     'rf': {
-        'coxa':  (4,  True, (0, 110), 0.0),
-        'femur': (5,  True, (90, 180), 0.0),
-        'tibia': (6,  True, (0, 130), 0.0),
+        'coxa':  (4,  True, (70, 130), 0.0),
+        'femur': (5,  True, (0, 90), 0.0),
+        'tibia': (6,  True, (50, 180), 0.0),
     },
     'lr': {
-        'coxa':  (7,  True,  (0, 180), 0.0),
-        'femur': (8,  True,  (0, 180), 0.0),
-        'tibia': (9,  True,  (0, 180), 0.0),
+        'coxa':  (7,  True,  (70, 130), 0.0),
+        'femur': (8,  True,  (0, 90), 0.0),
+        'tibia': (9,  True,  (90, 180), 0.0),
     },
     'rr': {
-        'coxa':  (10, False, (0, 110), 0.0),
+        'coxa':  (10, False, (50, 110), 0.0),
         'femur': (11, False, (90, 180), 0.0),
-        'tibia': (12, False, (0, 130), 0.0),
+        'tibia': (12, False, (0, 90), 0.0),
     },
 }
 

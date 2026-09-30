@@ -4,18 +4,17 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.animation import FuncAnimation
 from matplotlib.widgets import Slider
-from config import l_coxa, l_femur, l_tibia
+from config import l_coxa, l_femur, l_tibia, p_start
 from ik import calculate_joints, inverse_kinematics
 from gait import calculate_trajectory
 from joystick import PS4Controller
 
 NUM_SAMPLES = 30
-servo_id = 10  # podaj serwo_id dla nogi, którą chcesz wizualizować (np. 4 dla prawej przedniej nogi)
+servo_id = 1  # podaj serwo_id dla nogi, którą chcesz wizualizować (np. 4 dla prawej przedniej nogi)
 
 # Wartości początkowe (startowe) — dalej sterowane suwakami w oknie wykresu
-step_length = 80.0  # długość kroku w mm
+step_length = 60.0  # długość kroku w mm
 step_height = 40.0  # wysokość unoszenia stopy w mm
-p_start = (-60, 165, -100)  # pozycja startowa stopy w mm (x, y, z) w układzie współrzędnych nogi
 
 # Zakresy suwaków — dostosuj do swojego robota, jeśli trzeba
 STEP_LENGTH_MIN, STEP_LENGTH_MAX = 20.0, 150.0
