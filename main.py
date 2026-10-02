@@ -42,6 +42,7 @@ def return_to_neutral():
             if sid in ACTIVE_SERVO_IDS:
                 angles_to_send[sid] = correct_angle(sid, angle)
     send_servos(angles_to_send)
+    print(f"Returning to neutral position: {angles_to_send}")
     running = False
     gait_phase = 0.0
     ramp = 0.0

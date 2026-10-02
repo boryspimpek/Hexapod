@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quadruped Sim</title>
+<style>
+:root{--bg:#0e1116;--panel:#161b23;--line:#262d38;--text:#e4e8ee;--mute:#8a94a3;--acc:#35d0ba;--warn:#ff6b57}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:13px/1.4 "Segoe UI",system-ui,sans-serif;overflow:hidden}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+#panel{position:fixed;top:12px;right:12px;bottom:12px;width:310px;background:rgba(22,27,35,.88);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:14px;padding:14px;overflow-y:auto}
+h1{font-size:15px;margin:0 0 2px;font-weight:600}
+h2{font-size:12px;margin:16px 0 6px;color:var(--acc);font-weight:600;letter-spacing:.02em}
+.sub{color:var(--mute);font-size:12px}
+.row{display:grid;grid-template-columns:78px 1fr 46px;align-items:center;gap:8px;margin:5px 0}
+.row span:last-child{text-align:right;color:var(--mute);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--acc);margin:0}
+#pad{display:flex;align-items:center;gap:8px;margin:8px 0}
+#dot{width:8px;height:8px;border-radius:50%;background:var(--warn)}
+#dot.on{background:var(--acc);box-shadow:0 0 8px var(--acc)}
+#sticks{display:flex;gap:14px;margin-top:6px}
+.stick{position:relative;width:64px;height:64px;border-radius:50%;border:1px solid var(--line);background:#0e1116}
+.stick i{position:absolute;width:12px;height:12px;border-radius:50%;background:var(--acc);left:26px;top:26px}
+.stick b{position:absolute;bottom:-16px;width:100%;text-align:center;font-weight:400;color:var(--mute);font-size:11px}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+td,th{padding:3px 2px;text-align:right;font-weight:400}
+th{color:var(--mute)} td:first-child,th:first-child{text-align:left}
+td.bad{color:var(--warn)}
+button{background:transparent;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer;font:inherit}
+button:hover{border-color:var(--acc);color:var(--acc)}
+#hint{position:fixed;left:16px;bottom:12px;color:var(--mute);font-size:12px}
+@media(max-width:700px){#panel{top:auto;left:8px;right:8px;width:auto;height:46vh}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<aside id="panel">
+  <h1>Quadruped Sim</h1>
+  <div class="sub">3-DOF na nogę · IK analityczne</div>
+  <div id="pad"><div id="dot"></div><span id="padname">Brak pada — naciśnij dowolny przycisk</span></div>
+  <div id="sticks">
+    <div class="stick" id="sl"><i></i><b>L: X/Y stóp</b></div>
+    <div class="stick" id="sr"><i></i><b>R: wys./yaw</b></div>
+  </div>
+  <div style="height:14px"></div>
+  <h2>Geometria (mm)</h2><div id="g1"></div>
+  <h2>Pozycja stóp</h2><div id="g2"></div>
+  <button id="reset">Zeruj pozycję</button>
+  <h2>Chód trot</h2><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="gaitOn" checked style="accent-color:var(--acc)"> włączony <span class="sub">(Options na padzie)</span></label><div id="g3"></div><h2>Kąty stawów (°)</h2>
+  <table id="tbl"><tr><th></th><th>coxa</th><th>femur</th><th>tibia</th></tr></table>
+</aside>
+<div id="hint">Mysz: obrót · kółko: zoom · bez pada: WASD ruch, Q/E skręt</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ---------- parametry ----------
+const P = {L:200, W:120, H:40, coxa:43, femur:100, tibia:149, stand:40, reach:121};
+const O = {x:0, y:0, z:0, yaw:0};          // offsety ze sliderów (yaw w °)
+const RANGE = {x:70, y:70, z:50, yaw:25};  // zasięg drążków
+const LEGS = [
+  {n:'FL', sx: 1, sy: 1, m:  Math.PI/2, inv:[false,false,false]},
+  {n:'FR', sx: 1, sy:-1, m: -Math.PI/2, inv:[false,true, true ]},
+  {n:'RL', sx:-1, sy: 1, m:  Math.PI/2, inv:[false,false,false]},
+  {n:'RR', sx:-1, sy:-1, m: -Math.PI/2, inv:[false,true, true ]},
+];
+const deg = r => r*180/Math.PI;
+const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+
+// ---------- IK ----------
+function solveLeg(leg, st, g){
+  const hip = new THREE.Vector3(leg.sx*P.L/2, leg.sy*P.W/2, 0);
+  const s = P.coxa + P.reach, y = st.yaw*Math.PI/180, cy=Math.cos(y), sy=Math.sin(y);
+  const bx = hip.x + Math.cos(leg.m)*s, by = hip.y + Math.sin(leg.m)*s;
+  const tx = bx*cy - by*sy + st.x + g.x, ty = bx*sy + by*cy + st.y + g.y, tz = -P.stand + st.z + g.z;
+  const vx = tx-hip.x, vy = ty-hip.y, vz = tz;
+  const c = Math.cos(leg.m), sn = Math.sin(leg.m);
+  const lx = vx*c + vy*sn, ly = -vx*sn + vy*c;
+  const gamma = Math.atan2(ly, lx);
+  const d = Math.hypot(lx, ly) - P.coxa, f = P.femur, t = P.tibia;
+  let D = Math.hypot(d, vz), ok = true;
+  const Dc = clamp(D, Math.abs(f-t)+1, f+t-0.5);
+  if (Dc !== D) ok = false;
+  D = Dc;
+  const th1 = Math.atan2(vz, d) + Math.acos(clamp((f*f + D*D - t*t)/(2*f*D), -1, 1));
+  const beta = Math.acos(clamp((f*f + t*t - D*D)/(2*f*t), -1, 1));
+  const th2 = th1 - (Math.PI - beta);
+  const u = new THREE.Vector3(Math.cos(leg.m+gamma), Math.sin(leg.m+gamma), 0);
+  const C = hip.clone().addScaledVector(u, P.coxa);
+  const K = C.clone().addScaledVector(u, f*Math.cos(th1)).add(new THREE.Vector3(0,0,f*Math.sin(th1)));
+  const F = K.clone().addScaledVector(u, t*Math.cos(th2)).add(new THREE.Vector3(0,0,t*Math.sin(th2)));
+  const a = [deg(gamma)+90, deg(th1)+90, -(deg(beta)-180+25)];
+  return {hip, C, K, F, ok, a: a.map((v,i) => leg.inv[i] ? 180 - v : v)};
+  // return {hip, C, K, F, ok, a:[deg(gamma)+90, deg(th1)+90, -(deg(beta)-180+25)]};
+}
+
+// ---------- scena ----------
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0e1116);
+scene.fog = new THREE.Fog(0x0e1116, 700, 1400);
+const camera = new THREE.PerspectiveCamera(45, 1, 1, 3000);
+camera.up.set(0,0,1);
+scene.add(new THREE.AmbientLight(0xffffff, .55));
+const sun = new THREE.DirectionalLight(0xffffff, .8); sun.position.set(200,-300,500); scene.add(sun);
+
+const grid = new THREE.GridHelper(1200, 24, 0x35d0ba, 0x262d38);
+grid.rotation.x = Math.PI/2; scene.add(grid);
+
+const bodyMat = new THREE.MeshStandardMaterial({color:0x2b3441, roughness:.5, metalness:.3});
+const body = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), bodyMat);
+const nose = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), new THREE.MeshStandardMaterial({color:0x35d0ba}));
+scene.add(body, nose);
+
+const limbMat = [0x8fa3bd, 0x5f7794, 0xb9c6d8].map(c => new THREE.MeshStandardMaterial({color:c, roughness:.4, metalness:.4}));
+const jointGeo = new THREE.SphereGeometry(1, 16, 12), cylGeo = new THREE.CylinderGeometry(1,1,1,12);
+const jointMat = new THREE.MeshStandardMaterial({color:0xe4e8ee}), footOk = new THREE.MeshStandardMaterial({color:0x35d0ba}), footBad = new THREE.MeshStandardMaterial({color:0xff6b57});
+LEGS.forEach(l => {
+  l.segs = limbMat.map(m => { const s = new THREE.Mesh(cylGeo, m); scene.add(s); return s; });
+  l.joints = [0,1,2].map(() => { const j = new THREE.Mesh(jointGeo, jointMat); j.scale.setScalar(7); scene.add(j); return j; });
+  l.foot = new THREE.Mesh(jointGeo, footOk); l.foot.scale.setScalar(9); scene.add(l.foot);
+});
+const Y = new THREE.Vector3(0,1,0);
+function seg(m, a, b, r){
+  const dir = b.clone().sub(a), len = dir.length();
+  m.position.copy(a).addScaledVector(dir, .5);
+  m.quaternion.setFromUnitVectors(Y, dir.normalize());
+  m.scale.set(r, len, r);
+}
+
+// ---------- UI ----------
+function slider(host, obj, key, label, min, max, step, unit, cb){
+  const r = document.createElement('div'); r.className = 'row';
+  r.innerHTML = `<span>${label}</span><input type="range" min="${min}" max="${max}" step="${step}" value="${obj[key]}"><span></span>`;
+  const inp = r.querySelector('input'), val = r.lastElementChild;
+  const upd = () => { obj[key] = +inp.value; val.textContent = inp.value + unit; cb && cb(); };
+  inp.addEventListener('input', upd); val.textContent = obj[key] + unit;
+  r._set = v => { inp.value = v; val.textContent = Math.round(v) + unit; };
+  host.appendChild(r); return r;
+}
+const g1 = document.getElementById('g1'), g2 = document.getElementById('g2');
+[['coxa','coxa',10,80],['femur','femur',40,140],['tibia','tibia',40,180],['stand','wys. stania',10,200],['reach','wysunięcie',0,200],
+ ['L','korpus dł.',100,320],['W','korpus szer.',60,200],['H','korpus wys.',20,80]]
+ .forEach(([k,l,a,b]) => slider(g1, P, k, l, a, b, 1, '', buildBody));
+const sx = slider(g2, O, 'x', 'X (przód)', -RANGE.x, RANGE.x, 1, '');
+const sy = slider(g2, O, 'y', 'Y (lewo)', -RANGE.y, RANGE.y, 1, '');
+const sz = slider(g2, O, 'z', 'Z (góra)', -RANGE.z, RANGE.z, 1, '');
+const sw = slider(g2, O, 'yaw', 'Yaw', -RANGE.yaw, RANGE.yaw, 1, '°');
+document.getElementById('reset').onclick = () => { O.x=O.y=O.z=O.yaw=0; [sx,sy,sz,sw].forEach(s=>s._set(0)); };
+
+const tbl = document.getElementById('tbl');
+LEGS.forEach(l => { const tr = document.createElement('tr'); tr.innerHTML = `<td>${l.n}</td><td></td><td></td><td></td>`; tbl.appendChild(tr); l.tr = tr; });
+
+function buildBody(){
+  body.scale.set(P.L, P.W, P.H);
+  nose.scale.set(24, P.W*.5, P.H*.6); nose.position.set(P.L/2+8, 0, 0);
+}
+buildBody();
+
+// ---------- kamera ----------
+let az = -0.9, el = .45, dist = 560, drag = false, px = 0, py = 0;
+canvas.addEventListener('pointerdown', e => { drag = true; px = e.clientX; py = e.clientY; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointerup', () => drag = false);
+canvas.addEventListener('pointermove', e => {
+  if (!drag) return;
+  az -= (e.clientX-px)*.008; el = clamp(el + (e.clientY-py)*.008, .05, 1.5); px = e.clientX; py = e.clientY;
+});
+canvas.addEventListener('wheel', e => { dist = clamp(dist*(1+e.deltaY*.001), 200, 1400); e.preventDefault(); }, {passive:false});
+function resize(){ renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix(); }
+addEventListener('resize', resize); resize();
+
+// ---------- pad ----------
+const dot = document.getElementById('dot'), padname = document.getElementById('padname');
+const dl = document.querySelector('#sl i'), dr = document.querySelector('#sr i');
+const dz = v => Math.abs(v) < .08 ? 0 : v;
+const keys = {};
+addEventListener('keydown', e => keys[e.code] = 1); addEventListener('keyup', e => keys[e.code] = 0);
+const gaitEl = document.getElementById('gaitOn');
+const G = {sl:40, sh:40, f:2.2};
+const g3 = document.getElementById('g3');
+slider(g3, G, 'sl', 'dł. kroku', 20, 110, 1, '');
+slider(g3, G, 'sh', 'wys. kroku', 10, 60, 1, '');
+slider(g3, G, 'f', 'częstotl.', 0.1, 4, 0.1, ' Hz');
+function setLabels(){
+  document.querySelector('#sl b').textContent = gaitEl.checked ? 'L: ruch' : 'L: X/Y stóp';
+  document.querySelector('#sr b').textContent = gaitEl.checked ? 'R: skręt.' : 'R: wys./yaw';
+}
+gaitEl.addEventListener('change', setLabels); setLabels();
+let prevOpt = false;
+function readPad(){
+  const gp = [...(navigator.getGamepads ? navigator.getGamepads() : [])].find(g => g && g.connected);
+  let lx = (keys.KeyD?1:0)-(keys.KeyA?1:0), ly = (keys.KeyS?1:0)-(keys.KeyW?1:0), rx = (keys.KeyE?1:0)-(keys.KeyQ?1:0), ry = 0;
+  if (!gp){ dot.classList.remove('on'); padname.textContent = 'Brak pada — naciśnij przycisk (lub WASD/QE)'; }
+  else {
+    dot.classList.add('on'); padname.textContent = gp.id.slice(0, 38);
+    lx = dz(gp.axes[0]); ly = dz(gp.axes[1]); rx = dz(gp.axes[2]); ry = dz(gp.axes[3]);
+    const o = !!(gp.buttons[9] && gp.buttons[9].pressed);
+    if (o && !prevOpt){ gaitEl.checked = !gaitEl.checked; setLabels(); }
+    prevOpt = o;
+  }
+  dl.style.transform = `translate(${lx*26}px,${ly*26}px)`; dr.style.transform = `translate(${rx*26}px,${ry*26}px)`;
+  return {lx, ly, rx, ry, x:-ly*RANGE.x, y:-lx*RANGE.y, z:-ry*RANGE.z, yaw:-rx*RANGE.yaw};
+}
+
+// ---------- pętla ----------
+let frame = 0, phase = 0, last = 0;
+const sv = {vx:0, vy:0, wz:0};
+LEGS.forEach(l => l.ph = (l.sx*l.sy > 0) ? 0 : .5);   // trot: pary diagonalne (FL+RR) / (FR+RL)
+function loop(now){
+  const dt = Math.min(.05, (now - (last || now))/1000); last = now;
+  const p = readPad(), gait = gaitEl.checked;
+  const st = gait ? {x:O.x, y:O.y, z:O.z, yaw:O.yaw}
+                : {x:O.x+p.x, y:O.y+p.y, z:O.z+p.z, yaw:O.yaw+p.yaw};
+                  // wygładzone prędkości
+  const k = 1 - Math.exp(-dt*8);
+  const tg = gait ? {vx:-p.ly, vy:-p.lx, wz:-p.rx} : {vx:0, vy:0, wz:0};
+  for (const a in sv) sv[a] += (tg[a] - sv[a])*k;
+  const act = clamp(Math.max(Math.hypot(sv.vx, sv.vy), Math.abs(sv.wz)), 0, 1);
+  phase = (phase + dt*G.f*act) % 1;
+  grid.position.z = -P.stand;
+  const rl = [6, 5.5, 4.5];
+  LEGS.forEach(l => {
+    const s = (phase + l.ph) % 1;
+    const bx = Math.cos(l.m)*(P.coxa+P.reach) + l.sx*P.L/2, by = Math.sin(l.m)*(P.coxa+P.reach) + l.sy*P.W/2;
+    const stx = G.sl*(sv.vx - sv.wz*by/100), sty = G.sl*(sv.vy + sv.wz*bx/100);
+    let c, lift = 0;
+    if (s < .5) c = .5 - s*2;                                   // podpór: stopa jedzie do tyłu
+    else { const q = (s-.5)*2; c = -.5 + (1-Math.cos(Math.PI*q))/2; lift = G.sh*act*Math.sin(Math.PI*q); }  // przenoszenie
+    const r = solveLeg(l, st, {x:c*stx, y:c*sty, z:lift});
+    seg(l.segs[0], r.hip, r.C, rl[0]); seg(l.segs[1], r.C, r.K, rl[1]); seg(l.segs[2], r.K, r.F, rl[2]);
+    l.joints[0].position.copy(r.hip); l.joints[1].position.copy(r.C); l.joints[2].position.copy(r.K);
+    l.foot.position.copy(r.F); l.foot.material = r.ok ? footOk : footBad;
+    if (frame % 6 === 0){
+      const td = l.tr.children;
+      td[1].textContent = r.a[0].toFixed(0); td[2].textContent = r.a[1].toFixed(0); td[3].textContent = r.a[2].toFixed(0);
+      l.tr.style.color = r.ok ? '' : 'var(--warn)';
+    }
+  });
+  frame++;
+  camera.position.set(dist*Math.cos(el)*Math.cos(az), dist*Math.cos(el)*Math.sin(az), dist*Math.sin(el) - 40);
+  camera.lookAt(0, 0, -40);
+  renderer.render(scene, camera);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
