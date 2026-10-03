@@ -213,6 +213,22 @@ th {
   border-bottom: 1px solid var(--line);
 }
 
+.parameter-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 12px;
+  margin-bottom: 14px;
+}
+
+.parameter-row output {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.parameter-row input {
+  grid-column: 1 / -1;
+}
+
 tbody tr:nth-child(even) {
   background: rgb(255 255 255 / 3%);
 }

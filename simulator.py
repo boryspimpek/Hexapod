@@ -3,7 +3,7 @@ Pomarańczowy: osiągnięty limit serwa. Turkusowy pierścień: zadana pozycja s
 Bryła korpusu jest przybliżona; mocowania pochodzą z LEG_ORIGINS.
 Podgląd wszystkich 12 serw. main.py wysyła obecnie tylko serwa 1–6. 
 Symulator nie łączy się z robotem.
-Parametry zmieniaj w robot/config.py, następnie uruchom serwer ponownie. 
+Parametry chodu można zmieniać na żywo w panelu symulatora.
 Model pokazuje kinematykę bez fizyki i kolizji."""
 
 import argparse
@@ -18,6 +18,17 @@ from robot.servos import apply_offsets, remove_offsets
 from robot.motion import step_motion, JOINT_NAMES
 
 ASSETS = Path(__file__).resolve().parent / "simulator"
+PARAMETER_SPECS = {
+    "gait_speed": {"min": 0, "max": 5, "step": 0.1, "unit": "Hz"},
+    "step_length": {"min": 0, "max": 150, "step": 1, "unit": "mm"},
+    "step_height": {"min": 0, "max": 100, "step": 1, "unit": "mm"},
+    "z_height": {"min": -200, "max": 0, "step": 1, "unit": "mm"},
+}
+
+
+def parameter_specs():
+    return {name: {**spec, "default": getattr(cfg, name)}
+            for name, spec in PARAMETER_SPECS.items()}
 
 
 def joint_points(name, angles):
@@ -32,6 +43,12 @@ def world_point(name, point):
 
 
 def simulate(data):
+    parameters = {name: float(data.get(name, getattr(cfg, name)))
+                  for name in PARAMETER_SPECS}
+    for name, value in parameters.items():
+        spec = PARAMETER_SPECS[name]
+        if not math.isfinite(value) or not spec["min"] <= value <= spec["max"]:
+            raise ValueError(f"{name}: wymagany zakres {spec['min']}–{spec['max']}")
     values = {key: float(data.get(key, default)) for key, default in
               (("phase", 0), ("ramp", 0), ("elapsed", 0.02), ("x", 0), ("y", 0))}
     if not all(math.isfinite(v) for v in values.values()):
@@ -43,7 +60,7 @@ def simulate(data):
     if len(direction) != 2 or not all(isinstance(v, (int, float)) and math.isfinite(v) and abs(v) <= 1 for v in direction):
         raise ValueError("Nieprawidłowy kierunek")
     state = {"phase": values["phase"], "ramp": values["ramp"], "direction": direction}
-    state, frame = step_motion(state, values["x"], values["y"], values["elapsed"])
+    state, frame = step_motion(state, values["x"], values["y"], values["elapsed"], **parameters)
     for name, leg in frame["legs"].items():
         geometric, limited = [], []
         for joint, raw in zip(JOINT_NAMES, leg["raw_angles"]):
@@ -56,12 +73,15 @@ def simulate(data):
         leg["limited"] = limited
     frame.update(state)
     frame.update(origins=cfg.LEG_ORIGINS,
-                 ground=min(p[2] for p in cfg.p_start.values()))
+                 ground=parameters["z_height"])
     return frame
 
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path == "/api/parameters":
+            self.respond(200, json.dumps(parameter_specs()).encode(), "application/json")
+            return
         files = {"/": ("index.html", "text/html"), "/sim.js": ("sim.js", "text/javascript"),
                  "/style.css": ("style.css", "text/css")}
         asset = files.get(self.path)

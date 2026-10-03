@@ -153,6 +153,37 @@ resize();
 
 const status = document.getElementById("status");
 const keys = new Set();
+const parameters = {};
+async function loadParameters() {
+  const response = await fetch("/api/parameters", {signal: AbortSignal.timeout(3000)});
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const specs = await response.json();
+  for (const [name, spec] of Object.entries(specs)) {
+    parameters[name] = spec.default;
+    const row = document.createElement("div");
+    row.className = "parameter-row";
+    const label = document.createElement("label");
+    label.htmlFor = name;
+    label.textContent = name;
+    const output = document.createElement("output");
+    output.htmlFor = name;
+    const input = document.createElement("input");
+    input.type = "range";
+    input.id = name;
+    input.min = spec.min;
+    input.max = spec.max;
+    input.step = spec.step;
+    input.value = spec.default;
+    const update = () => {
+      parameters[name] = Number(input.value);
+      output.textContent = `${parameters[name]} ${spec.unit}`;
+    };
+    input.addEventListener("input", update);
+    update();
+    row.append(label, output, input);
+    document.getElementById("gait-parameters").appendChild(row);
+  }
+}
 let state = {phase: 0, ramp: 0, direction: [0, 0]};
 Object.values(LEGS).forEach(leg => {
   const row = document.createElement("tr");
@@ -216,7 +247,7 @@ async function tick() {
   try {
     const response = await fetch("/api/frame", {method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({...state, ...controls(), elapsed: .02}),
+      body: JSON.stringify({...state, ...controls(), ...parameters, elapsed: .02}),
       signal: AbortSignal.timeout(3000)});
     const frame = await response.json();
     if (!response.ok) throw new Error(frame.error || `HTTP ${response.status}`);
@@ -235,4 +266,8 @@ function animate() {
   camera.lookAt(cameraTarget);
   renderer.render(scene, camera); requestAnimationFrame(animate);
 }
-tick(); animate();
+loadParameters().then(tick).catch(error => {
+  status.className = "warning";
+  status.textContent = `Simulation error: ${error.message}. Reload to retry.`;
+});
+animate();

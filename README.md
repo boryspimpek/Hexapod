@@ -8,6 +8,11 @@ Serwer wymaga tylko biblioteki standardowej Pythona; przeglądarka pobiera
 Three.js z CDN, więc pierwsze otwarcie wymaga Internetu.
 
 Sterowanie: WASD lub lewy drążek pada, mysz do obrotu i kółko do zoomu.
+Panel „Gait parameters” pozwala zmieniać na żywo `gait_speed` (0–5 Hz),
+`step_length` (0–150 mm), `step_height` (0–100 mm) i `z_height` (−200–0 mm).
+`z_height` ustawia wspólne bazowe Z stóp, zachowując indywidualne X i Y nóg;
+bardziej ujemna wartość zwiększa wysokość korpusu nad podłożem. Ustawienia są osobne
+dla każdej karty, a odświeżenie przywraca wartości z `robot/config.py`.
 Pauza zatrzymuje fazę, a pozycja spoczynkowa zeruje stan chodu.
 `robot/motion.py` jest wspólnym źródłem obliczeń dla `main.py` i `simulator.py`:
 korzysta z konfiguracji, trajektorii, kinematyki i kalibracji serw w pakiecie `robot`. Zmiany konfiguracji

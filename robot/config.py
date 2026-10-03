@@ -9,11 +9,13 @@ ramp_time = 0.5  # czas narastania/zanikania prędkości chodu w sekundach
 stick_deadzone = 0.1  # strefa martwa joystika
 
 # Pozycja startowa stopy [mm] (x, y, z) w układzie współrzędnych danej nogi
+
+z_height = -40
 p_start = {
-    'lf': (0, 165, -40),
-    'rf': (0, 165, -40),
-    'lr': (0, 165, -40),
-    'rr': (0, 165, -40),
+    'lf': (0, 165, z_height),
+    'rf': (0, 165, z_height),
+    'lr': (0, 165, z_height),
+    'rr': (0, 165, z_height),
 }
 
 # Indeksy pól w krotce (servo_id, inverted, limits, trim)
