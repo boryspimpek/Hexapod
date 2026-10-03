@@ -5,27 +5,17 @@ import math
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-import config as cfg
-from gait import apply_offsets, calc_dir
-from motion import calculate_frame, advance_motion, next_phase, JOINT_NAMES
+from robot import config as cfg
+from robot.kinematics import forward_kinematics
+from robot.servos import apply_offsets, remove_offsets
+from robot.motion import step_motion, JOINT_NAMES
 
 ASSETS = Path(__file__).resolve().parent / "simulator"
 
 
 def joint_points(name, angles):
-    """FK for rendering"""
-    coxa = math.radians(angles[0] - 90)
-    femur, tibia = map(math.radians, angles[1:])
-    radial = (math.sin(coxa), math.cos(coxa))
-    knee_direction = femur + tibia + math.radians(25) - math.pi
-    a = (cfg.l_coxa * radial[0], cfg.l_coxa * radial[1], 0)
-    b = (a[0] + cfg.l_femur * math.sin(femur) * radial[0],
-         a[1] + cfg.l_femur * math.sin(femur) * radial[1],
-         -cfg.l_femur * math.cos(femur))
-    c = (b[0] + cfg.l_tibia * math.sin(knee_direction) * radial[0],
-         b[1] + cfg.l_tibia * math.sin(knee_direction) * radial[1],
-         b[2] - cfg.l_tibia * math.cos(knee_direction))
-    return [world_point(name, p) for p in ((0, 0, 0), a, b, c)]
+    points = forward_kinematics(angles, cfg.l_coxa, cfg.l_femur, cfg.l_tibia)
+    return [world_point(name, point) for point in points]
 
 
 def world_point(name, point):
@@ -45,25 +35,20 @@ def simulate(data):
     direction = tuple(data.get("direction", (0, 0)))
     if len(direction) != 2 or not all(isinstance(v, (int, float)) and math.isfinite(v) and abs(v) <= 1 for v in direction):
         raise ValueError("Nieprawidłowy kierunek")
-    running = math.hypot(values["x"], values["y"]) > cfg.stick_deadzone
-    if running:
-        direction = calc_dir(values["x"], values["y"])
-    phase = values["phase"]
-    ramp = advance_motion(phase, values["ramp"], running, values["elapsed"])
-    frame = calculate_frame(phase, ramp, direction)
+    state = {"phase": values["phase"], "ramp": values["ramp"], "direction": direction}
+    state, frame = step_motion(state, values["x"], values["y"], values["elapsed"])
     for name, leg in frame["legs"].items():
         geometric, limited = [], []
         for joint, raw in zip(JOINT_NAMES, leg["raw_angles"]):
             spec = cfg.LEGS[name][joint]
             command = leg["servo_angles"][joint]
             limited.append(abs(command - apply_offsets(spec[cfg.SERVO_ID], raw)) > 1e-8)
-            angle = command - spec[cfg.TRIM]
-            geometric.append(180 - angle if spec[cfg.INVERTED] else angle)
+            geometric.append(remove_offsets(spec[cfg.SERVO_ID], command))
         leg["points"] = joint_points(name, geometric)
         leg["target_world"] = world_point(name, leg["target"])
         leg["limited"] = limited
-    frame.update(phase=next_phase(phase, ramp, values["elapsed"]), ramp=ramp,
-                 direction=direction, origins=cfg.LEG_ORIGINS,
+    frame.update(state)
+    frame.update(origins=cfg.LEG_ORIGINS,
                  ground=min(p[2] for p in cfg.p_start.values()))
     return frame
 

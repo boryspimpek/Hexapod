@@ -1,7 +1,5 @@
+"""Kierunek ruchu i trajektoria stopy."""
 import math
-from config import LEGS, SERVO_ID, INVERTED, LIMITS, TRIM
-
-JOINTS = {d[SERVO_ID]: d for joints in LEGS.values() for d in joints.values()}
 
 def calc_dir(jx, jy):
     magnitude = math.hypot(jx, jy)
@@ -30,15 +28,3 @@ def calculate_trajectory(global_phase, cur_step_length, cur_step_height, p_start
         pos_z = p_start[2]
 
     return (pos_x, pos_y, pos_z)
-
-def apply_offsets(servo_id, angle_deg):
-    """Inwersja + trim, bez limitów."""
-    data = JOINTS[servo_id]
-    a = (180 - angle_deg) if data[INVERTED] else angle_deg
-    return a + data[TRIM]
-
-
-def correct_angle(servo_id, angle_deg):
-    """Kąt gotowy do wysyłki: inwersja, trim, limity."""
-    lo, hi = JOINTS[servo_id][LIMITS]
-    return max(lo, min(hi, apply_offsets(servo_id, angle_deg)))

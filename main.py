@@ -1,127 +1,46 @@
-import socket, json, math, time
-from config import stick_deadzone
-from gait import calc_dir
-from joystick import PS4Controller
-from motion import calculate_frame, advance_motion, next_phase
-
-ESP = ("192.168.0.115", 8888)
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-ACTIVE_SERVO_IDS = {1, 2, 3, 4, 5, 6}
-
-controller = PS4Controller()
-
-# --- Stan globalny modułu (jak w wersji na ESP32: running, gait_phase, itd.) ---
-running = False
-gait_phase = 0.0
-ramp = 0.0
-last_dir = (0.0, 0.0)
-
-last_up = last_down = last_left = last_right = False
-
-last_send_time = time.time()
-last_phase_time = time.time()
+"""Uruchomienie sterowania robotem: python main.py."""
+import time
+from robot import config as cfg
+from robot.joystick import open_controller, get_left_stick, close_controller
+from robot.motion import calculate_frame, initial_state, step_motion
+from robot.transport import open_socket, send_servos
 
 
-def send_servos(angles: dict):
-    if not angles:
-        return
-    payload = {"set_servo": {str(k): round(v, 1) for k, v in angles.items()}}
-    sock.sendto(json.dumps(payload).encode(), ESP)
+def send_frame(sock, frame):
+    angles = {sid: angle for sid, angle in frame["servos"].items()
+              if sid in cfg.ACTIVE_SERVO_IDS}
+    send_servos(sock, angles, precision=1)
+    return angles
 
 
-def return_to_neutral():
-    """Ustawia wszystkie nogi w pozycji spoczynkowej P_START, jednym pakietem."""
-    global running, gait_phase, ramp
-    frame = calculate_frame()
-    angles_to_send = {sid: angle for sid, angle in frame["servos"].items()
-                      if sid in ACTIVE_SERVO_IDS}
-    send_servos(angles_to_send)
-    running = False
-    gait_phase = 0.0
-    ramp = 0.0
-
-
-def execute_gait(elapsed):
-    """Liczy jedną klatkę chodu (rampa + faza + IK) i wysyła do ESP."""
-    global gait_phase, ramp
-
-    ramp = advance_motion(gait_phase, ramp, running, elapsed)
-    frame = calculate_frame(gait_phase, ramp, last_dir)
-    angles_to_send = {sid: angle for sid, angle in frame["servos"].items()
-                      if sid in ACTIVE_SERVO_IDS}
-
-    send_servos(angles_to_send)
-    print(f"gait_phase: {gait_phase:.3f}, ramp: {ramp:.3f}, angles: {angles_to_send}")
-    gait_phase = next_phase(gait_phase, ramp, elapsed)
-
-
-def process_ps4_input():
-    """Czyta lewy joystick, ustawia running/last_dir. Miejsce na prawy stick w przyszłości."""
-    global running, last_dir
-
-    stick_x, stick_y = controller.get_left_stick()
-    jx, jy = stick_y, stick_x
-    magnitude = math.sqrt(jx**2 + jy**2)
-
-    if magnitude > stick_deadzone:
-        running = True
-        last_dir = calc_dir(jx, jy)
-        return
-
-    # rx, ry = controller.get_right_stick()
-    # if math.sqrt(rx**2 + ry**2) > stick_deadzone:
-    #     running = False  # np. tryb tilt/rotate zamiast chodu
-    #     ... obsługa prawego sticka ...
-    #     return
-
-    running = False
-
-
-# def process_ps4_buttons():
-#     """Odczytuje przyciski, na zboczu narastającym wykonuje akcje."""
-#     global last_up, last_down, last_left, last_right
-
-#     up = controller.get_button("up")
-#     down = controller.get_button("down")
-#     left = controller.get_button("left")
-#     right = controller.get_button("right")
-
-#     if up and not last_up:
-#         pass  # np. zmiana wysokości korpusu
-
-#     if down and not last_down:
-#         pass
-
-#     if left and not last_left:
-#         pass  # np. zmiana t_cycle / prędkości chodu
-
-#     if right and not last_right:
-#         pass
-
-#     last_up, last_down, last_left, last_right = up, down, left, right
-
-
-def main_loop():
-    global last_phase_time
-
-    return_to_neutral()
-    last_phase_time = time.time()
-
+def main_loop(controller, sock):
+    state = initial_state()
+    send_frame(sock, calculate_frame())
+    last_time = time.monotonic()
     while True:
-        current_time = time.time()
-        elapsed = current_time - last_phase_time
-        last_phase_time = current_time
+        current_time = time.monotonic()
+        elapsed = current_time - last_time
+        last_time = current_time
+        stick_x, stick_y = get_left_stick(controller)
+        phase = state["phase"]
+        was_moving = state["ramp"] > 0
+        state, frame = step_motion(state, stick_y, stick_x, elapsed)
+        angles = send_frame(sock, frame)
+        if was_moving or state["ramp"] > 0:
+            print(f"gait_phase: {phase:.3f}, ramp: {state['ramp']:.3f}, angles: {angles}")
+        time.sleep(cfg.LOOP_INTERVAL)
 
-        process_ps4_input()
-        # process_ps4_buttons()
 
-        if running or ramp > 0.0:
-            execute_gait(elapsed)
-        else:
-            return_to_neutral()
+def main():
+    controller = open_controller()
+    try:
+        with open_socket() as sock:
+            main_loop(controller, sock)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        close_controller(controller)
 
-        time.sleep(0.02)
 
 if __name__ == "__main__":
-    return_to_neutral()
-    main_loop()
+    main()

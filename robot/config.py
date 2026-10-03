@@ -55,3 +55,12 @@ LEG_ORIGINS = {
     "lr": (0, 30, 0),
     "rr": (0, -30, 0),
 }
+# Komunikacja i wybór aktywnych serw.
+ESP = ("192.168.0.115", 8888)
+ACTIVE_SERVO_IDS = {1, 2, 3, 4, 5, 6}
+LOOP_INTERVAL = 0.02
+CONTROLLER_DEADZONE = 0.15
+
+# Wspólna konwencja kątów dla IK i FK [stopnie].
+COXA_ZERO = 90.0
+TIBIA_OFFSET = 25.0

@@ -12,13 +12,13 @@ Konwencja osi (WAŻNE):
 
 import math
 
-from config import INVERTED
+from .config import COXA_ZERO, TIBIA_OFFSET
 
 def inverse_kinematics(x, y, z, l_coxa, l_femur, l_tibia):
     """
     Oblicza kąty (w stopniach) stawów Coxa, Femur, Tibia dla zadanej
-    pozycji stopy (x, y, z) względem stawu Coxa. Kąty są gotowe do użycia w serwach, 
-    uwzględniając kierunek i sposób montażu.
+    pozycji stopy (x, y, z) względem stawu Coxa. Kąty uwzględniają konwencję montażu; inwersja, trim i limity
+    są stosowane osobno przez robot.servos.
 
     Zwraca:
         (theta_coxa_deg, theta_femur_deg, theta_tibia_deg)
@@ -53,11 +53,26 @@ def inverse_kinematics(x, y, z, l_coxa, l_femur, l_tibia):
 
     return (
         #### COXA: ####
-        # IK zwraca kąty np + 20, -20 w lewo i w prawo od osi y, dodajemy 90 stopni, 
-        # aby kąt był liczony od zera, a nie od osi y, 
+        # IK zwraca kąty np + 20, -20 w lewo i w prawo od osi y, dodajemy 90 stopni,
+        # aby kąt był liczony od zera, a nie od osi y,
         # ponieważ takich wartości spodziewają się serwa
-        90 + math.degrees(theta_coxa_rad), 
+        COXA_ZERO + math.degrees(theta_coxa_rad),
 
         math.degrees(theta_femur_rad),
 
-        math.degrees(theta_tibia_rad) - 25)
+        math.degrees(theta_tibia_rad) - TIBIA_OFFSET)
+
+def forward_kinematics(angles, l_coxa, l_femur, l_tibia):
+    """Punkty stawów w lokalnym układzie nogi, w konwencji IK."""
+    coxa = math.radians(angles[0] - COXA_ZERO)
+    femur, tibia = map(math.radians, angles[1:])
+    radial = (math.sin(coxa), math.cos(coxa))
+    knee_direction = femur + tibia + math.radians(TIBIA_OFFSET) - math.pi
+    a = (l_coxa * radial[0], l_coxa * radial[1], 0)
+    b = (a[0] + l_femur * math.sin(femur) * radial[0],
+         a[1] + l_femur * math.sin(femur) * radial[1],
+         -l_femur * math.cos(femur))
+    c = (b[0] + l_tibia * math.sin(knee_direction) * radial[0],
+         b[1] + l_tibia * math.sin(knee_direction) * radial[1],
+         b[2] - l_tibia * math.cos(knee_direction))
+    return [(0, 0, 0), a, b, c]
