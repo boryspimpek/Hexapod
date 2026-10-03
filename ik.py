@@ -51,7 +51,6 @@ def inverse_kinematics(x, y, z, l_coxa, l_femur, l_tibia):
 
     theta_femur_rad = alpha + beta
 
-    # Funkcja zwraca kąty w stopniach, gotowe do użycia w serwach. Uwzględnia kierunek i sposób montażu.
     return (
         #### COXA: ####
         # IK zwraca kąty np + 20, -20 w lewo i w prawo od osi y, dodajemy 90 stopni, 
@@ -59,11 +58,6 @@ def inverse_kinematics(x, y, z, l_coxa, l_femur, l_tibia):
         # ponieważ takich wartości spodziewają się serwa
         90 + math.degrees(theta_coxa_rad), 
 
-        #### FEMUR: ###
-        # IK zwraca gotowy kąt dla serwa ponieważ mamy alfa + beta
         math.degrees(theta_femur_rad),
 
-        #### TIBIA: ###
-        # Serwo jest zamontowane orczykiem i obraca sie w przeciwną stonę niż obliczony kąt, więc odejmujemy od 180 stopni
-        180 - math.degrees(theta_tibia_rad) - 25 # odejmujemy 25 ponieważ noga jest krzywa, idzie jak łuk,
-    )
+        math.degrees(theta_tibia_rad) - 25)

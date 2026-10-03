@@ -1,9 +1,8 @@
 import socket, json, math, time
-from config import (LEGS, SERVO_ID, LEG_PHASE_OFFSET, l_coxa, l_femur, l_tibia, gait_speed, step_length, step_height,
-                     p_start, ramp_time, stick_deadzone)
-from ik import inverse_kinematics
-from gait import calculate_trajectory, calc_dir, correct_angle
+from config import stick_deadzone
+from gait import calc_dir
 from joystick import PS4Controller
+from motion import calculate_frame, advance_motion, next_phase
 
 ESP = ("192.168.0.115", 8888)
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -33,16 +32,10 @@ def send_servos(angles: dict):
 def return_to_neutral():
     """Ustawia wszystkie nogi w pozycji spoczynkowej P_START, jednym pakietem."""
     global running, gait_phase, ramp
-    angles_to_send = {}
-    for leg in LEGS:
-        p = p_start[leg]
-        coxa_angle, femur_angle, tibia_angle = inverse_kinematics(p[0], p[1], p[2], l_coxa, l_femur, l_tibia)
-        for joint, angle in (("coxa", coxa_angle), ("femur", femur_angle), ("tibia", tibia_angle)):
-            sid = LEGS[leg][joint][SERVO_ID]
-            if sid in ACTIVE_SERVO_IDS:
-                angles_to_send[sid] = correct_angle(sid, angle)
+    frame = calculate_frame()
+    angles_to_send = {sid: angle for sid, angle in frame["servos"].items()
+                      if sid in ACTIVE_SERVO_IDS}
     send_servos(angles_to_send)
-    print(f"Returning to neutral position: {angles_to_send}")
     running = False
     gait_phase = 0.0
     ramp = 0.0
@@ -52,29 +45,14 @@ def execute_gait(elapsed):
     """Liczy jedną klatkę chodu (rampa + faza + IK) i wysyła do ESP."""
     global gait_phase, ramp
 
-    ramp_step = elapsed / ramp_time
-    ramp = min(1.0, ramp + ramp_step) if running else max(0.0, ramp - ramp_step)
-
-    cur_step_length = step_length * ramp
-    cur_step_height = step_height * ramp
-
-    angles_to_send = {}
-    for leg in LEGS:
-        leg_start = p_start[leg]
-        leg_phase = (gait_phase + LEG_PHASE_OFFSET[leg]) % 1.0
-        foot_pos = calculate_trajectory(leg_phase, cur_step_length, cur_step_height,
-                                         leg_start, last_dir[0], last_dir[1])
-        coxa_angle, femur_angle, tibia_angle = inverse_kinematics(
-            foot_pos[0], foot_pos[1], foot_pos[2], l_coxa, l_femur, l_tibia
-        )
-        for joint, angle in (("coxa", coxa_angle), ("femur", femur_angle), ("tibia", tibia_angle)):
-            sid = LEGS[leg][joint][SERVO_ID]
-            if sid in ACTIVE_SERVO_IDS:
-                angles_to_send[sid] = correct_angle(sid, angle)
+    ramp = advance_motion(gait_phase, ramp, running, elapsed)
+    frame = calculate_frame(gait_phase, ramp, last_dir)
+    angles_to_send = {sid: angle for sid, angle in frame["servos"].items()
+                      if sid in ACTIVE_SERVO_IDS}
 
     send_servos(angles_to_send)
     print(f"gait_phase: {gait_phase:.3f}, ramp: {ramp:.3f}, angles: {angles_to_send}")
-    gait_phase = (gait_phase + gait_speed * elapsed) % 1.0 if ramp > 0.0 else 0.0
+    gait_phase = next_phase(gait_phase, ramp, elapsed)
 
 
 def process_ps4_input():

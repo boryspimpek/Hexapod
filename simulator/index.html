@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="pl">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Robot — podgląd Python</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<canvas id="c" aria-label="Trójwymiarowy podgląd robota"></canvas>
+<aside id="panel">
+<h1>Robot · podgląd ruchu</h1>
+<p class="sub">Chód, IK i limity z programu Python</p>
+<h2>Sterowanie</h2>
+<p>Przytrzymaj WASD lub użyj lewego drążka pada. Puść, aby zatrzymać chód z rampą.</p>
+<p id="padname" class="sub">Klawiatura WASD</p>
+<button id="pause">Pauza</button> <button id="reset">Pozycja spoczynkowa</button>
+<h2>Stan obliczeń</h2><p id="status" role="status">Łączenie z Pythonem…</p>
+<h2>Kąty serw po ograniczeniach (°)</h2>
+<table id="tbl"><thead><tr><th>Noga</th><th>coxa</th><th>femur</th><th>tibia</th></tr></thead><tbody></tbody></table>
+<p class="sub">Pomarańczowy: osiągnięty limit serwa. Turkusowy pierścień: zadana pozycja stopy. Bryła korpusu jest przybliżona; mocowania pochodzą z LEG_ORIGINS.</p>
+<p class="sub">Podgląd wszystkich 12 serw. main.py wysyła obecnie tylko serwa 1–6. Symulator nie łączy się z robotem.</p>
+<p class="sub">Parametry zmieniaj w config.py, następnie uruchom serwer ponownie. Model pokazuje kinematykę bez fizyki i kolizji.</p>
+</aside>
+<p id="hint">Mysz: obrót · kółko: zoom · WASD: ruch</p>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>if (!window.THREE) document.getElementById('status').textContent = 'Nie udało się pobrać Three.js. Sprawdź połączenie z Internetem.';</script>
+<script src="sim.js"></script>
+</body></html>
