@@ -11,11 +11,15 @@ stick_deadzone = 0.1  # strefa martwa joystika
 # Pozycja startowa stopy [mm] (x, y, z) w układzie współrzędnych danej nogi
 
 z_height = -40
+x_offset_front = 20
+y_offset_front = 165
+x_offset_rear = 0
+y_offset_rear = 165
 p_start = {
-    'lf': (0, 165, z_height),
-    'rf': (0, 165, z_height),
-    'lr': (0, 165, z_height),
-    'rr': (0, 165, z_height),
+    'lf': (x_offset_front, y_offset_front, z_height),
+    'rf': (x_offset_front, y_offset_front, z_height),
+    'lr': (x_offset_rear, y_offset_rear, z_height),
+    'rr': (x_offset_rear, y_offset_rear, z_height),
 }
 
 # Indeksy pól w krotce (servo_id, inverted, limits, trim)
@@ -45,10 +49,10 @@ LEGS = {
 }
 
 LEG_PHASE_OFFSET = {
-    'lf': 0.5,
-    'rf': 0.0,
-    'lr': 0.0,
-    'rr': 0.5,
+    'lf': 0.0,
+    'rf': 0.5,
+    'lr': 0.5,
+    'rr': 0.0,
 }
 
 LEG_ORIGINS = {

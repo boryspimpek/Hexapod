@@ -9,16 +9,22 @@ JOINT_NAMES = ("coxa", "femur", "tibia")
 
 
 def calculate_frame(phase=0.0, ramp=0.0, direction=(0.0, 0.0), *,
-                    step_length=None, step_height=None, z_height=None):
+                    step_length=None, step_height=None, z_height=None,
+                    x_offset_front=None, y_offset_front=None,
+                    x_offset_rear=None, y_offset_rear=None):
     step_length = cfg.step_length if step_length is None else step_length
     step_height = cfg.step_height if step_height is None else step_height
     z_height = cfg.z_height if z_height is None else z_height
     legs, servos = {}, {}
     for name, joints in cfg.LEGS.items():
+        x_offset, y_offset = ((x_offset_front, y_offset_front) if name.endswith("f")
+                              else (x_offset_rear, y_offset_rear))
+        start = (cfg.p_start[name][0] if x_offset is None else x_offset,
+                 cfg.p_start[name][1] if y_offset is None else y_offset, z_height)
         target = calculate_trajectory(
             (phase + cfg.LEG_PHASE_OFFSET[name]) % 1.0,
             step_length * ramp, step_height * ramp,
-            (*cfg.p_start[name][:2], z_height), *direction,
+            start, *direction,
         )
         raw = inverse_kinematics(*target, cfg.l_coxa, cfg.l_femur, cfg.l_tibia)
         corrected = {}
@@ -47,7 +53,9 @@ def initial_state():
 
 
 def step_motion(state, x, y, elapsed, *, gait_speed=None, step_length=None,
-                step_height=None, z_height=None):
+                step_height=None, z_height=None,
+                x_offset_front=None, y_offset_front=None,
+                x_offset_rear=None, y_offset_rear=None):
     """Zwraca (nowy stan, klatka), nie modyfikując przekazanego stanu.
 
     Klatka używa bieżącej fazy i nowej rampy; zwrócony stan zawiera
@@ -58,7 +66,9 @@ def step_motion(state, x, y, elapsed, *, gait_speed=None, step_length=None,
     ramp = advance_ramp(state["ramp"], running, elapsed)
     frame = calculate_frame(state["phase"], ramp, direction,
                             step_length=step_length, step_height=step_height,
-                            z_height=z_height)
+                            z_height=z_height,
+                            x_offset_front=x_offset_front, y_offset_front=y_offset_front,
+                            x_offset_rear=x_offset_rear, y_offset_rear=y_offset_rear)
     updated = {"phase": next_phase(state["phase"], ramp, elapsed, gait_speed=gait_speed),
                "ramp": ramp, "direction": direction}
     return updated, frame

@@ -13,6 +13,10 @@ Panel „Gait parameters” pozwala zmieniać na żywo `gait_speed` (0–5 Hz),
 `z_height` ustawia wspólne bazowe Z stóp, zachowując indywidualne X i Y nóg;
 bardziej ujemna wartość zwiększa wysokość korpusu nad podłożem. Ustawienia są osobne
 dla każdej karty, a odświeżenie przywraca wartości z `robot/config.py`.
+Suwaki `x_offset_front`, `y_offset_front`, `x_offset_rear` i `y_offset_rear`
+ustawiają bazowe współrzędne stóp przedniej i tylnej pary nóg (w mm).
+Zakres X: −150–150 mm; Y: 50–250 mm. Dodatnie X przesuwa stopy do przodu,
+a większe Y odsuwa je na zewnątrz po obu stronach robota.
 Pauza zatrzymuje fazę, a pozycja spoczynkowa zeruje stan chodu.
 `robot/motion.py` jest wspólnym źródłem obliczeń dla `main.py` i `simulator.py`:
 korzysta z konfiguracji, trajektorii, kinematyki i kalibracji serw w pakiecie `robot`. Zmiany konfiguracji

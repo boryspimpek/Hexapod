@@ -23,6 +23,10 @@ PARAMETER_SPECS = {
     "step_length": {"min": 0, "max": 150, "step": 1, "unit": "mm"},
     "step_height": {"min": 0, "max": 100, "step": 1, "unit": "mm"},
     "z_height": {"min": -200, "max": 0, "step": 1, "unit": "mm"},
+    "x_offset_front": {"min": -150, "max": 150, "step": 1, "unit": "mm"},
+    "y_offset_front": {"min": 50, "max": 250, "step": 1, "unit": "mm"},
+    "x_offset_rear": {"min": -150, "max": 150, "step": 1, "unit": "mm"},
+    "y_offset_rear": {"min": 50, "max": 250, "step": 1, "unit": "mm"},
 }
 
 
@@ -60,7 +64,10 @@ def simulate(data):
     if len(direction) != 2 or not all(isinstance(v, (int, float)) and math.isfinite(v) and abs(v) <= 1 for v in direction):
         raise ValueError("Nieprawidłowy kierunek")
     state = {"phase": values["phase"], "ramp": values["ramp"], "direction": direction}
-    state, frame = step_motion(state, values["x"], values["y"], values["elapsed"], **parameters)
+    # Omitted XY overrides retain each leg's configured starting position.
+    motion_parameters = {name: value for name, value in parameters.items()
+                         if "_offset_" not in name or name in data}
+    state, frame = step_motion(state, values["x"], values["y"], values["elapsed"], **motion_parameters)
     for name, leg in frame["legs"].items():
         geometric, limited = [], []
         for joint, raw in zip(JOINT_NAMES, leg["raw_angles"]):

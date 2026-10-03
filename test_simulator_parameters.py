@@ -9,9 +9,9 @@ from simulator import simulate, parameter_specs
 
 class GaitParameterTests(unittest.TestCase):
     def test_live_settings_change_phase_and_trajectory(self):
-        frame = simulate({"x": 1, "phase": .125, "ramp": 1,
+        frame = simulate({"x": 1, "phase": (.125 - cfg.LEG_PHASE_OFFSET["rf"]) % 1, "ramp": 1,
                           "gait_speed": 2, "step_length": 80, "step_height": 20})
-        self.assertAlmostEqual(frame["phase"], .165)
+        self.assertAlmostEqual(frame["phase"], ((.125 - cfg.LEG_PHASE_OFFSET["rf"]) % 1 + .04) % 1)
         target = frame["legs"]["rf"]["target"]
         self.assertAlmostEqual(target[0], cfg.p_start["rf"][0] - 20)
         self.assertAlmostEqual(target[2], cfg.p_start["rf"][2] + 20 * 2 ** -.5)
@@ -55,13 +55,45 @@ class GaitParameterTests(unittest.TestCase):
             _, frame = step_motion(initial_state(), 0, 0, .02)
             for leg in frame["legs"].values():
                 self.assertEqual(leg["target"][2], -65)
-        frame = simulate({"z_height": -80, "phase": .25, "ramp": 1,
+        frame = simulate({"z_height": -80, "phase": (.25 - cfg.LEG_PHASE_OFFSET["rf"]) % 1, "ramp": 1,
                           "x": 1, "step_height": 20})
         self.assertAlmostEqual(frame["legs"]["rf"]["target"][2], -60)
         self.assertAlmostEqual(frame["legs"]["lf"]["target"][2], -80)
         for value in (-201, 1, float("nan"), float("inf"), "invalid"):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 simulate({"z_height": value})
+
+    def test_front_rear_offsets_and_mirrored_world_coordinates(self):
+        before = simulate({})
+        settings = {"x_offset_front": 25, "y_offset_front": 180,
+                    "x_offset_rear": -30, "y_offset_rear": 140, "z_height": -60}
+        frame = simulate(settings)
+        for name, leg in frame["legs"].items():
+            x, y = (25, 180) if name.endswith("f") else (-30, 140)
+            self.assertEqual(leg["target"], (x, y, -60))
+            origin = cfg.LEG_ORIGINS[name]
+            self.assertEqual(leg["target_world"],
+                             [origin[0] + x, origin[1] + (y if name.startswith("l") else -y),
+                              origin[2] - 60])
+        self.assertEqual(simulate({}), before)
+        moving = simulate({**settings, "phase": .125, "ramp": 1, "x": 1})
+        baseline = simulate({"phase": .125, "ramp": 1, "x": 1, "z_height": -60})
+        for name in cfg.LEGS:
+            x, y = (25, 180) if name.endswith("f") else (-30, 140)
+            a, b = moving["legs"][name]["target"], baseline["legs"][name]["target"]
+            self.assertAlmostEqual(a[0] - b[0], x - cfg.p_start[name][0])
+            self.assertAlmostEqual(a[1] - b[1], y - cfg.p_start[name][1])
+            self.assertEqual(a[2], b[2])
+
+    def test_offset_defaults_and_validation(self):
+        for name in ("x_offset_front", "y_offset_front", "x_offset_rear", "y_offset_rear"):
+            spec = parameter_specs()[name]
+            self.assertEqual(spec["default"], getattr(cfg, name))
+            for value in (spec["min"] - 1, spec["max"] + 1, float("nan"), float("inf")):
+                with self.subTest(name=name, value=value), self.assertRaises(ValueError):
+                    simulate({name: value})
+        settings = {name: spec["default"] for name, spec in parameter_specs().items()}
+        self.assertEqual(simulate(settings), simulate({}))
 
 
 if __name__ == "__main__":
