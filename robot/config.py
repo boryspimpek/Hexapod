@@ -2,7 +2,7 @@
 
 l_coxa, l_femur, l_tibia = 43.73, 100.0, 149.10
 
-gait_speed = 0.5  # ile "cykli chodu" na sekundę — to jest "prędkość"
+gait_speed = 1  # ile "cykli chodu" na sekundę — to jest "prędkość"
 step_length = 40.0  # długość kroku w mm
 step_height = 40.0  # wysokość unoszenia stopy w mm
 ramp_time = 0.5  # czas narastania/zanikania prędkości chodu w sekundach

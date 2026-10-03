@@ -1,18 +1,19 @@
 <!doctype html>
 <html lang="pl">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>QUADRO - quadruped robot simulator</title><link rel="stylesheet" href="style.css"></head>
+<title>MX-404 APEX robot simulator</title><link rel="stylesheet" href="style.css"></head>
 <body>
 <canvas id="c" aria-label="Trójwymiarowy podgląd robota"></canvas>
 <aside id="panel">
-<h1>QUADRO - quadruped robot simulator</h1>
-<h2>Control</h2>
-<p>Use leftstick or wsad to move.</p>
-<p id="padname" class="sub">Keyboard</p>
-<button id="pause">Pause</button> <button id="reset">Neutral position</button>
-<h2>Calculation Status</h2><p id="status" role="status">Connecting...</p>
-<h2>Servo angles (°)</h2>
+<header class="panel-header"><h1>MX-404 APEX</h1><p class="sub">Quadruped robot simulator</p></header>
+<section class="panel-section" aria-labelledby="status-heading">
+<h2 id="status-heading">Calculation Status</h2><p id="status" role="status">Connecting...</p>
+</section>
+<section class="panel-section" aria-labelledby="angles-heading">
+<h2 id="angles-heading">Servo angles <span class="unit">°</span></h2>
 <table id="tbl"><thead><tr><th>Leg</th><th>coxa</th><th>femur</th><th>tibia</th></tr></thead><tbody></tbody></table>
+</section>
+<footer class="sub">Use leftstick or wsad to move.<br>View: left button — rotation, scroll wheel — zoom, hold scroll wheel and drag — pan.</footer>
 </aside>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>if (!window.THREE) document.getElementById('status').textContent = 'Nie udało się pobrać Three.js. Sprawdź połączenie z Internetem.';</script>

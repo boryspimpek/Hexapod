@@ -80,28 +80,55 @@ function positionSegment(mesh, start, end, radius) {
 let azimuth = -0.9;
 let elevation = 0.45;
 let cameraDistance = 560;
-let isDragging = false;
+const cameraTarget = new THREE.Vector3(40, 0, -40);
+const panRight = new THREE.Vector3();
+const panUp = new THREE.Vector3();
+let dragMode = null;
+let activePointerId = null;
 let previousPointerX = 0;
 let previousPointerY = 0;
 
 canvas.addEventListener("pointerdown", (event) => {
-  isDragging = true;
+  if (activePointerId !== null || (event.button !== 0 && event.button !== 1)) return;
+  event.preventDefault();
+  dragMode = event.button === 1 ? "pan" : "rotate";
+  activePointerId = event.pointerId;
   previousPointerX = event.clientX;
   previousPointerY = event.clientY;
   canvas.setPointerCapture(event.pointerId);
 });
-canvas.addEventListener("pointerup", () => {
-  isDragging = false;
+function stopDragging(event) {
+  if (event.pointerId !== activePointerId) return;
+  dragMode = null;
+  activePointerId = null;
+  if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+}
+canvas.addEventListener("pointerup", stopDragging);
+canvas.addEventListener("pointercancel", stopDragging);
+canvas.addEventListener("lostpointercapture", stopDragging);
+canvas.addEventListener("auxclick", (event) => {
+  if (event.button === 1) event.preventDefault();
 });
 canvas.addEventListener("pointermove", (event) => {
-  if (!isDragging) return;
+  if (event.pointerId !== activePointerId) return;
 
-  azimuth -= (event.clientX - previousPointerX) * 0.008;
-  elevation = clamp(
-    elevation + (event.clientY - previousPointerY) * 0.008,
-    0.05,
-    1.5,
-  );
+  const deltaX = event.clientX - previousPointerX;
+  const deltaY = event.clientY - previousPointerY;
+  if (dragMode === "pan") {
+    const unitsPerPixel = 2 * cameraDistance * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))
+      / canvas.clientHeight;
+    panRight.setFromMatrixColumn(camera.matrixWorld, 0);
+    panUp.setFromMatrixColumn(camera.matrixWorld, 1);
+    cameraTarget.addScaledVector(panRight, -deltaX * unitsPerPixel);
+    cameraTarget.addScaledVector(panUp, deltaY * unitsPerPixel);
+  } else {
+    azimuth -= deltaX * 0.008;
+    elevation = clamp(
+      elevation + deltaY * 0.008,
+      0.05,
+      1.5,
+    );
+  }
   previousPointerX = event.clientX;
   previousPointerY = event.clientY;
 });
@@ -126,9 +153,7 @@ resize();
 
 const status = document.getElementById("status");
 const keys = new Set();
-let paused = false;
 let state = {phase: 0, ramp: 0, direction: [0, 0]};
-let generation = 0;
 Object.values(LEGS).forEach(leg => {
   const row = document.createElement("tr");
   row.innerHTML = `<td>${leg.n.toUpperCase()}</td><td></td><td></td><td></td>`;
@@ -146,16 +171,9 @@ addEventListener("keydown", e => {
 addEventListener("keyup", e => keys.delete(e.code));
 addEventListener("blur", () => keys.clear());
 document.addEventListener("visibilitychange", () => keys.clear());
-document.getElementById("pause").onclick = e => {
-  paused = !paused; e.target.textContent = paused ? "Wzn?w" : "Pauza";
-};
-document.getElementById("reset").onclick = () => {
-  generation++; state = {phase: 0, ramp: 0, direction: [0, 0]}; keys.clear();
-};
 function controls() {
   if (document.hidden) return {x: 0, y: 0};
   const pad = [...(navigator.getGamepads?.() || [])].find(p => p && p.connected);
-  document.getElementById("padname").textContent = pad ? pad.id : "Klawiatura WASD";
   // Same per-axis deadzone/rescaling as PS4Controller, then the main.py axis swap.
   const axis = v => Math.abs(v) < .15 ? 0 : Math.sign(v) * (Math.abs(v) - .15) / .85;
   return pad ? {x: axis(-pad.axes[1]), y: axis(pad.axes[0])} :
@@ -195,18 +213,15 @@ Ramp ${(frame.ramp * 100).toFixed(0)}%`;
 // One request at a time; each tab owns its motion state. Fixed 20 ms robot timestep.
 async function tick() {
   const started = performance.now();
-  const version = generation;
   try {
     const response = await fetch("/api/frame", {method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({...state, ...controls(), elapsed: paused ? 0 : .02}),
+      body: JSON.stringify({...state, ...controls(), elapsed: .02}),
       signal: AbortSignal.timeout(3000)});
     const frame = await response.json();
     if (!response.ok) throw new Error(frame.error || `HTTP ${response.status}`);
-    if (version === generation) {
-      state = {phase: frame.phase, ramp: frame.ramp, direction: frame.direction};
-      drawFrame(frame);
-    }
+    state = {phase: frame.phase, ramp: frame.ramp, direction: frame.direction};
+    drawFrame(frame);
   } catch (error) {
     keys.clear(); status.className = "warning";
     status.textContent = `Simulation error: ${error.message}`;
@@ -214,10 +229,10 @@ async function tick() {
   setTimeout(tick, Math.max(0, 20 - (performance.now() - started)));
 }
 function animate() {
-  camera.position.set(40 + cameraDistance * Math.cos(elevation) * Math.cos(azimuth),
-    cameraDistance * Math.cos(elevation) * Math.sin(azimuth),
-    cameraDistance * Math.sin(elevation) - 40);
-  camera.lookAt(40, 0, -40);
+  camera.position.set(cameraTarget.x + cameraDistance * Math.cos(elevation) * Math.cos(azimuth),
+    cameraTarget.y + cameraDistance * Math.cos(elevation) * Math.sin(azimuth),
+    cameraTarget.z + cameraDistance * Math.sin(elevation));
+  camera.lookAt(cameraTarget);
   renderer.render(scene, camera); requestAnimationFrame(animate);
 }
 tick(); animate();
