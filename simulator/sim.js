@@ -189,8 +189,8 @@ function drawFrame(frame) {
     leg.target.position.set(...result.target_world);
   });
   status.className = limitedCount ? "warning" : "";
-  status.textContent = `Python po??czony ? faza ${frame.phase.toFixed(3)}
-Rampa ${(frame.ramp * 100).toFixed(0)}% ? ${limitedCount} nogi z ograniczeniem serw`;
+  status.textContent = `Phase ${frame.phase.toFixed(2)}
+Ramp ${(frame.ramp * 100).toFixed(0)}%`;
 }
 // One request at a time; each tab owns its motion state. Fixed 20 ms robot timestep.
 async function tick() {
@@ -209,7 +209,7 @@ async function tick() {
     }
   } catch (error) {
     keys.clear(); status.className = "warning";
-    status.textContent = `B??d symulacji: ${error.message}`;
+    status.textContent = `Simulation error: ${error.message}`;
   }
   setTimeout(tick, Math.max(0, 20 - (performance.now() - started)));
 }

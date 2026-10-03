@@ -1,4 +1,11 @@
-"""Local HTML simulator. Run: python simulator.py (no pygame required)."""
+"""Local HTML simulator. Run: python simulator.py (no pygame required).
+Pomarańczowy: osiągnięty limit serwa. Turkusowy pierścień: zadana pozycja stopy. 
+Bryła korpusu jest przybliżona; mocowania pochodzą z LEG_ORIGINS.
+Podgląd wszystkich 12 serw. main.py wysyła obecnie tylko serwa 1–6. 
+Symulator nie łączy się z robotem.
+Parametry zmieniaj w robot/config.py, następnie uruchom serwer ponownie. 
+Model pokazuje kinematykę bez fizyki i kolizji."""
+
 import argparse
 import json
 import math
