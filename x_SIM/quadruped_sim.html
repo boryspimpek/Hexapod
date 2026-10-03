@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Quadruped Sim</title>
+    <link rel="stylesheet" href="quadruped_sim.css" />
+  </head>
+  <body>
+    <canvas id="c" aria-label="Trójwymiarowa symulacja robota" role="img"></canvas>
+
+    <aside id="panel" aria-label="Sterowanie symulatorem">
+      <h1>Quadruped Sim</h1>
+      <p class="sub">3-DOF na nogę · IK analityczne</p>
+
+      <div id="pad" role="status">
+        <span id="dot" aria-hidden="true"></span>
+        <span id="padname">Brak pada — naciśnij dowolny przycisk</span>
+      </div>
+
+      <div id="sticks" aria-label="Pozycje drążków">
+        <div class="stick" id="sl"><i></i><b>L: X/Y stóp</b></div>
+        <div class="stick" id="sr"><i></i><b>R: wys./yaw</b></div>
+      </div>
+
+      <div class="section-spacer" aria-hidden="true"></div>
+
+      <h2>Geometria (mm)</h2>
+      <div id="g1"></div>
+
+      <h2>Pozycja stóp</h2>
+      <div id="g2"></div>
+      <button id="reset" type="button">Zeruj pozycję</button>
+
+      <h2>Chód trot</h2>
+      <label class="gait-toggle">
+        <input type="checkbox" id="gaitOn" checked />
+        <span>włączony</span>
+        <span class="sub">(Options na padzie)</span>
+      </label>
+      <div id="g3"></div>
+
+      <h2>Kąty stawów (°)</h2>
+      <table id="tbl">
+        <thead>
+          <tr><th></th><th>coxa</th><th>femur</th><th>tibia</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </aside>
+
+    <p id="hint">Mysz: obrót · kółko: zoom · bez pada: WASD ruch, Q/E skręt</p>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="quadruped_sim.js"></script>
+  </body>
+</html>
