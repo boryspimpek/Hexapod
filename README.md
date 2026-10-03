@@ -89,7 +89,7 @@ Uruchamiaj z głównego katalogu projektu:
 python main.py
 python simulator.py
 python -m tools.manual_servos
-python -m tools.print_angles
+python tools/print_angles.py
 python -m robot.joystick
 python -m unittest discover -s tests
 ```
