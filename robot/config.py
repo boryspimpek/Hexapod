@@ -68,5 +68,5 @@ LOOP_INTERVAL = 0.02
 CONTROLLER_DEADZONE = 0.15
 
 # Wspólna konwencja kątów dla IK i FK [stopnie].
-COXA_ZERO = 90.0
-TIBIA_OFFSET = 25.0
+COXA_ZERO = 90.0 # specjalne przesunięcie dla cox, aby 0 stopni było wzdłuż osi robota
+TIBIA_OFFSET = 25.0 # specjalne ofset poniewaź odcinek tibia jest zakręcony po łuku
