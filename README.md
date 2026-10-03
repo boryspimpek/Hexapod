@@ -25,7 +25,6 @@ Symulator nie importuje sterownika pada ani nie wysyła UDP.
 Każda karta ma własny stan; obliczenia używają kroku 20 ms, więc przy wolnych
 odpowiedziach animacja zwalnia zamiast pomijać klatki.
 
-Sprawdzenie zgodności obliczeń: `python -m unittest discover -s tests`.
 
 The project contains inverse kinematics (IK) calculations for a three-segment quadruped leg and a visualization of its movement.
 
@@ -75,7 +74,8 @@ Coordinates and lengths are given in millimeters, and angles are returned in deg
 - `robot/transport.py`: socket UDP i wspólny format komend ESP.
 - `simulator.py`: walidacja API, przygotowanie podglądu i serwer HTTP.
 - `simulator/`: HTML, CSS i JavaScript podglądu.
-- `tools/`: narzędzia pomocnicze; `tests/`: testy; `archive/`: stare wersje.
+- `tools/`: narzędzia pomocnicze; 
+- `archive/`: stare wersje.
 
 Stan ruchu jest zwykłym słownikiem z polami `phase`, `ramp`, `direction`.
 `step_motion(state, x, y, elapsed)` zwraca nowy stan i klatkę bez zmiany wejściowego
@@ -91,7 +91,6 @@ python simulator.py
 python -m tools.manual_servos
 python tools/print_angles.py
 python -m robot.joystick
-python -m unittest discover -s tests
 ```
 
 Sterowanie robotem i diagnostyka pada wymagają `pygame`.
