@@ -11,7 +11,7 @@ stick_deadzone = 0.1  # strefa martwa joystika
 # Pozycja startowa stopy [mm] (x, y, z) w układzie współrzędnych danej nogi
 
 z_height = -40
-x_offset_front = 20
+x_offset_front = 0
 y_offset_front = 165
 x_offset_rear = 0
 y_offset_rear = 165
@@ -67,6 +67,7 @@ ACTIVE_SERVO_IDS = {1, 2, 3, 4, 5, 6}
 LOOP_INTERVAL = 0.02
 CONTROLLER_DEADZONE = 0.15
 
-# Wspólna konwencja kątów dla IK i FK [stopnie].
+# SERVO OFFSETS due to mounting and mechanical design. These offsets are applied 
+# to the raw angles calculated by the kinematics to get the actual servo command angles.
 COXA_ZERO = 90.0 # specjalne przesunięcie dla cox, aby 0 stopni było wzdłuż osi robota
 TIBIA_OFFSET = 25.0 # specjalne ofset poniewaź odcinek tibia jest zakręcony po łuku
