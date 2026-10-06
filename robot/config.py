@@ -72,4 +72,4 @@ CONTROLLER_DEADZONE = 0.15
 # SERVO OFFSETS due to mounting and mechanical design. These offsets are applied 
 # to the raw angles calculated by the kinematics to get the actual servo command angles.
 COXA_ZERO = 90.0 # specjalne przesunięcie dla cox, aby 0 stopni było wzdłuż osi robota
-TIBIA_OFFSET = 25.0 # specjalne ofset poniewaź odcinek tibia jest zakręcony po łuku
+TIBIA_OFFSET = -25.0 # specjalne ofset poniewaź odcinek tibia jest zakręcony po łuku

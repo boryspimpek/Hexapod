@@ -53,21 +53,20 @@ def inverse_kinematics(x, y, z, l_coxa, l_femur, l_tibia):
 
     return (
         #### COXA: ####
-        # IK zwraca kąty np + 20, -20 w lewo i w prawo od osi y, dodajemy 90 stopni,
-        # aby kąt był liczony od zera, a nie od osi y,
-        # ponieważ takich wartości spodziewają się serwa
+        # IK zwraca kąty np + 20, -20 w lewo i w prawo od osi y, dodajemy COXA_ZERO (90 stopni),
+        # aby kąt był liczony od zera, a nie od osi y, ponieważ takich wartości spodziewają się serwa
         COXA_ZERO + math.degrees(theta_coxa_rad),
-
+        #### FEMUR: ####
         math.degrees(theta_femur_rad),
-
-        math.degrees(theta_tibia_rad) - TIBIA_OFFSET)
+        #### TIBIA: ####
+        180 - (math.degrees(theta_tibia_rad) - TIBIA_OFFSET))
 
 def forward_kinematics(angles, l_coxa, l_femur, l_tibia):
     """Punkty stawów w lokalnym układzie nogi, w konwencji IK."""
     coxa = math.radians(angles[0] - COXA_ZERO)
     femur, tibia = map(math.radians, angles[1:])
     radial = (math.sin(coxa), math.cos(coxa))
-    knee_direction = femur + tibia + math.radians(TIBIA_OFFSET) - math.pi
+    knee_direction = femur - tibia + math.radians(TIBIA_OFFSET)
     a = (l_coxa * radial[0], l_coxa * radial[1], 0)
     b = (a[0] + l_femur * math.sin(femur) * radial[0],
          a[1] + l_femur * math.sin(femur) * radial[1],
