@@ -37,12 +37,12 @@ LEGS = {
         'tibia': (6,  True, (50, 180), 0.0),
     },
     'lr': {
-        'coxa':  (7,  False,  (50, 110), 0.0),
+        'coxa':  (7,  False,  (70, 130), 0.0),
         'femur': (8,  False,  (90, 180), 0.0),
         'tibia': (9,  False,  (0, 130), 0.0),
     },
     'rr': {
-        'coxa':  (10,  True, (70, 130), 0.0),
+        'coxa':  (10,  True, (50, 110), 0.0),
         'femur': (11,  True, (0, 90), 0.0),
         'tibia': (12,  True, (50, 180), 0.0),
     },
@@ -55,6 +55,8 @@ LEG_PHASE_OFFSET = {
     'rr': 0.0,
 }
 
+# Pozycje początkowe nóg (punkt coxa) w układzie współrzędnych robota (x, y, z) w mm 
+# used for visualization
 LEG_ORIGINS = {
     "lf": (80, 30, 0),
     "rf": (80, -30, 0),
@@ -63,7 +65,7 @@ LEG_ORIGINS = {
 }
 # Komunikacja i wybór aktywnych serw.
 ESP = ("192.168.0.115", 8888)
-ACTIVE_SERVO_IDS = {1, 2, 3, 4, 5, 6}
+ACTIVE_SERVO_IDS = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
 LOOP_INTERVAL = 0.02
 CONTROLLER_DEADZONE = 0.15
 
