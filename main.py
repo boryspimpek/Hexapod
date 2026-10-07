@@ -24,7 +24,7 @@ def main_loop(controller, sock):
         stick_x, stick_y = get_left_stick(controller)
         phase = state["phase"]
         was_moving = state["ramp"] > 0
-        state, frame = step_motion(state, -stick_y, stick_x, elapsed)
+        state, frame = step_motion(state, stick_y, stick_x, elapsed)
         angles = send_frame(sock, frame)
         if was_moving or state["ramp"] > 0:
             print(f"gait_phase: {phase:.3f}, ramp: {state['ramp']:.3f}, angles: {angles}")
