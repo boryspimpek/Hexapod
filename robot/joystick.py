@@ -1,6 +1,6 @@
 """Obsługa pada PS4. Diagnostyka: python -m robot.joystick."""
 import math
-from .config import CONTROLLER_DEADZONE
+from .config import CONTROLLER_DEADZONE, DPAD_UP_BUTTON, DPAD_DOWN_BUTTON
 
 LEFT_STICK_X_AXIS = 0
 LEFT_STICK_Y_AXIS = 1
@@ -36,6 +36,16 @@ def get_left_stick(controller, deadzone=CONTROLLER_DEADZONE):
             apply_deadzone(-controller.get_axis(LEFT_STICK_Y_AXIS), deadzone))
 
 
+def get_dpad_vertical(controller):
+    """+1: gora, -1: dol. Wywoluj po get_left_stick (event.pump)."""
+    if controller.get_numhats():
+        return controller.get_hat(0)[1]
+    count = controller.get_numbuttons()
+    up = controller.get_button(DPAD_UP_BUTTON) if DPAD_UP_BUTTON < count else 0
+    down = controller.get_button(DPAD_DOWN_BUTTON) if DPAD_DOWN_BUTTON < count else 0
+    return int(bool(up)) - int(bool(down))
+
+
 def close_controller(controller):
     import pygame
     try:
@@ -53,7 +63,9 @@ def main():
             pygame.event.pump()
             axes = [round(controller.get_axis(i), 3)
                     for i in range(controller.get_numaxes())]
-            print(f"\rosie: {axes}", end="", flush=True)
+            buttons = [i for i in range(controller.get_numbuttons()) if controller.get_button(i)]
+            print(f"\rosie: {axes}, przyciski: {buttons}, D-pad: {get_dpad_vertical(controller)}   ",
+                  end="", flush=True)
             time.sleep(0.02)
     except KeyboardInterrupt:
         print("\nKoniec.")

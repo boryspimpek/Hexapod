@@ -1,5 +1,15 @@
 # Hexapod
 
+Sterowanie wysokoscia w `python main.py`: D-pad gora podnosi korpus
+(`z_height` maleje), D-pad dol obniza korpus. Kazde nacisniecie zmienia
+wysokosc o 5 mm; przytrzymanie nie powtarza zmiany. Dziala w postoju i podczas
+chodu. Ustawienie obowiazuje do zakonczenia programu.
+Krok i zakres (-150 do -20 mm) ustawiaja `HEIGHT_STEP` i `HEIGHT_LIMITS`
+w `robot/config.py`. Zmiana poza zasieg IK jest odrzucana; limity serw nadal
+obowiazuja. Diagnostyka `python -m robot.joystick` pokazuje D-pad i numery
+przyciskow. Gdy pad nie udostepnia hat, dostosuj `DPAD_UP_BUTTON` i
+`DPAD_DOWN_BUTTON` do numerow z diagnostyki.
+
 ## Symulator HTML korzystający z logiki robota
 
 Uruchom z katalogu projektu: `python simulator.py`, następnie otwórz

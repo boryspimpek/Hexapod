@@ -12,9 +12,9 @@ stick_deadzone = 0.1  # strefa martwa joystika
 
 z_height = -40
 x_offset_front = 30
-y_offset_front = 165
+y_offset_front = 110
 x_offset_rear = -30
-y_offset_rear = 165
+y_offset_rear = 110
 p_start = {
     'lf': (x_offset_front, y_offset_front, z_height),
     'rf': (x_offset_front, y_offset_front, z_height),
@@ -68,6 +68,11 @@ ESP = ("192.168.0.115", 8888)
 ACTIVE_SERVO_IDS = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
 LOOP_INTERVAL = 0.02
 CONTROLLER_DEADZONE = 0.15
+HEIGHT_STEP = 5.0  # mm na nacisniecie D-pada
+HEIGHT_LIMITS = (-150.0, -20.0)  # zakres z_height podczas sterowania
+# D-pad jako przyciski (fallback, gdy sterownik nie udostepnia hat).
+DPAD_UP_BUTTON = 11
+DPAD_DOWN_BUTTON = 12
 
 # SERVO OFFSETS due to mounting and mechanical design. These offsets are applied 
 # to the raw angles calculated by the kinematics to get the actual servo command angles.
