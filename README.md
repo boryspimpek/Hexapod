@@ -74,12 +74,15 @@ Coordinates and lengths are given in millimeters, and angles are returned in deg
 
 ### Coxa Angle and Radial Distance
 
-![Diagram of the coxa angle and radial distance](<media/3.png>)
+![Diagram of the coxa angle and radial distance](<media/top_view_1.png>)
 
-### Leg Configuration
+### Front view
 
-![Diagram of the leg configuration below the Y-axis](<media/4.png>)
+![Diagram of the leg configuration below the Y-axis](<media/front_view_3.png>)
 
+### Rear view
+
+![Diagram of the leg configuration below the Y-axis](<media/rear_view_1.png>)
 
 ## Organizacja kodu
 

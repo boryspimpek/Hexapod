@@ -6,8 +6,6 @@ Konwencja osi (WAŻNE):
     - Y: kierunek na zewnątrz nogi (w stronę spoczynkowego rozstawienia)
          -> zmiana Y zmienia wysięg nogi (r), pracują Femur/Tibia
     - Z: pionowo w górę/w dół
-
-    W spoczynku (theta_coxa = 0) noga jest skierowana wzdłuż osi +Y.
 """
 
 import math
@@ -17,8 +15,7 @@ from .config import COXA_ZERO, TIBIA_OFFSET
 def inverse_kinematics(x, y, z, l_coxa, l_femur, l_tibia):
     """
     Oblicza kąty (w stopniach) stawów Coxa, Femur, Tibia dla zadanej
-    pozycji stopy (x, y, z) względem stawu Coxa. Kąty uwzględniają konwencję montażu; inwersja, trim i limity
-    są stosowane osobno przez robot.servos.
+    pozycji stopy (x, y, z) względem stawu Coxa.
 
     Zwraca:
         (theta_coxa_deg, theta_femur_deg, theta_tibia_deg)
@@ -56,9 +53,15 @@ def inverse_kinematics(x, y, z, l_coxa, l_femur, l_tibia):
         # IK zwraca kąty np + 20, -20 w lewo i w prawo od osi y, dodajemy COXA_ZERO (90 stopni),
         # aby kąt był liczony od zera, a nie od osi y, ponieważ takich wartości spodziewają się serwa
         COXA_ZERO + math.degrees(theta_coxa_rad),
+
         #### FEMUR: ####
         math.degrees(theta_femur_rad),
+
         #### TIBIA: ####
+        # Tibia jest zamontowana w taki sposób, że jej kąt 0 lub 180 stopni nie jest w pełni wyprostowany, 
+        # ale lekko zgięty (TIBIA_OFFSET), ofset jest dodany, aby końcówka stopy przy ustawiniu poziomym całej nogi była w lini.
+        # Dodatkowo, w konwencji IK kąt Tibia jest liczony w przeciwnym kierunku niż w serwie, 
+        # ponieważ serwo zamontowane jest tak, że orczyk jest sztywny, a obraca się serwo.
         180 - (math.degrees(theta_tibia_rad) - TIBIA_OFFSET))
 
 def forward_kinematics(angles, l_coxa, l_femur, l_tibia):

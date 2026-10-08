@@ -3,7 +3,7 @@
 l_coxa, l_femur, l_tibia = 43.73, 100.0, 149.10
 
 gait_speed = 1  # ile "cykli chodu" na sekundę — to jest "prędkość"
-step_length = 40.0  # długość kroku w mm
+step_length = 20.0  # długość kroku w mm
 step_height = 40.0  # wysokość unoszenia stopy w mm
 ramp_time = 0.5  # czas narastania/zanikania prędkości chodu w sekundach
 stick_deadzone = 0.1  # strefa martwa joystika
@@ -12,9 +12,9 @@ stick_deadzone = 0.1  # strefa martwa joystika
 
 z_height = -40
 x_offset_front = 30
-y_offset_front = 110
+y_offset_front = 130
 x_offset_rear = -30
-y_offset_rear = 110
+y_offset_rear = 130
 p_start = {
     'lf': (x_offset_front, y_offset_front, z_height),
     'rf': (x_offset_front, y_offset_front, z_height),
