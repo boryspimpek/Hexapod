@@ -2,6 +2,9 @@
 
 This repository contains the MT 404 Apex quadruped robot project, with inverse kinematics, gait generation, and a browser-based visualization. The code separates the robot logic from the simulator interface, allowing movement, servo calibration, and gait parameters to be tested without physical hardware.
 
+![sim](<media/sim.png>)
+![Overview](<media/overview.png>)
+
 ## HTML Simulator
 
 Run `python simulator.py` from the project directory, then open
