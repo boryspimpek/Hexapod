@@ -1,16 +1,8 @@
-# Hexapod
+# QUADRUPED MT 404 APEX
 
-Sterowanie wysokoscia w `python main.py`: D-pad gora podnosi korpus
-(`z_height` maleje), D-pad dol obniza korpus. Kazde nacisniecie zmienia
-wysokosc o 5 mm; przytrzymanie nie powtarza zmiany. Dziala w postoju i podczas
-chodu. Ustawienie obowiazuje do zakonczenia programu.
-Krok i zakres (-150 do -20 mm) ustawiaja `HEIGHT_STEP` i `HEIGHT_LIMITS`
-w `robot/config.py`. Zmiana poza zasieg IK jest odrzucana; limity serw nadal
-obowiazuja. Diagnostyka `python -m robot.joystick` pokazuje D-pad i numery
-przyciskow. Gdy pad nie udostepnia hat, dostosuj `DPAD_UP_BUTTON` i
-`DPAD_DOWN_BUTTON` do numerow z diagnostyki.
+To repozytorium zawiera projekt czteronożnego robota quadruped MT 404 Apex z implementacją kinematyki odwrotnej, generowania chodu oraz wizualizacji działania w przeglądarce. Kod oddziela logikę robota od interfejsu symulatora, dzięki czemu można testować ruch, kalibrację serw i parametry chodu bez bezpośredniego sprzętu.
 
-## Symulator HTML korzystający z logiki robota
+## Symulator HTML
 
 Uruchom z katalogu projektu: `python simulator.py`, następnie otwórz
 http://127.0.0.1:8000. Inny port: `python simulator.py --port 8080`.
@@ -172,6 +164,45 @@ Coordinates and lengths are given in millimeters, and angles are returned in deg
 ### TIBIA offset
 
 ![Tibia offset](<media/tibia_offset.png>)
+
+###
+
+To zdjecie pokazuje wstępne ustawienie serwa przed montażem konstrukcji nogi. Każde serwo powinno mieć ustawione 90 stopni w konfiguracji pokazanej na zdjęciu.
+
+![Mounting angels](<media/mounting_angles.png>)
+
+## Konfiguracja robota i komunikacja
+
+Ustawienia robota znajdują się w `robot/config.py`. Najważniejsze grupy:
+
+- **Geometria i chód:** `l_coxa`, `l_femur` i `l_tibia` określają długości
+	segmentów w milimetrach. `gait_speed`, `step_length`, `step_height` i
+	`ramp_time` sterują tempem oraz kształtem kroku. `LEG_PHASE_OFFSET` ustawia
+	przesunięcia faz między nogami, a `LEG_ORIGINS` określa położenie ich mocowań
+	używane przez wizualizację.
+- **Pozycje stóp:** `p_start` zawiera pozycje początkowe stóp w lokalnym układzie
+	każdej nogi. Wartości `x_offset_front`, `y_offset_front`, `x_offset_rear`,
+	`y_offset_rear` i `z_height` pozwalają ustawić je dla przedniej i tylnej pary.
+- **Serwa:** w `LEGS` dla każdego stawu podaje się ID serwa, kierunek obrotu
+	(`inverted`), zakres dozwolonych kątów (`limits`) i korektę montażową (`trim`).
+	`robot/servos.py` stosuje inwersję i trim, a następnie ogranicza kąt do podanego
+	zakresu. Limity należy dobrać do mechanicznego zakresu konkretnego serwa.
+	`COXA_ZERO` i `TIBIA_OFFSET` korygują kąty wynikające z przyjętej konwencji
+	oraz sposobu montażu tych stawów.
+- **Sterowanie:** `stick_deadzone` ustawia martwą strefę drążka, a
+	`CONTROLLER_DEADZONE` martwą strefę sterowania ruchem. `HEIGHT_STEP` i
+	`HEIGHT_LIMITS` określają zmianę i zakres wysokości korpusu; `DPAD_UP_BUTTON`
+	oraz `DPAD_DOWN_BUTTON` są zapasowymi numerami przycisków D-pada.
+- **Komunikacja:** `ESP` zawiera adres IP i port odbiornika, a
+	`ACTIVE_SERVO_IDS` wybiera serwa, do których wysyłane są komendy.
+	`LOOP_INTERVAL` określa odstęp między iteracjami pętli sterowania.
+
+Program `main.py` wysyła komendy do ESP przez UDP. `robot/transport.py` koduje
+je jako JSON, na przykład `{"set_servo": {"1": 90.0}}`; kąty są w programie
+robota zaokrąglane do 0,1 stopnia. Odbiornik ESP musi być skonfigurowany tak, by
+nasłuchiwał pod adresem z `ESP` i rozumiał ten format. Symulator HTML nie wysyła
+komend do robota. Zmiany konfiguracji zastosuj po ponownym uruchomieniu
+programu robota lub serwera symulatora.
 
 ## Organizacja kodu
 
