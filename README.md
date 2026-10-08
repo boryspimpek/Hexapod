@@ -62,6 +62,91 @@ l_femur = 100.0
 l_tibia = 149.10
 ```
 
+## Jak działa kinematyka odwrotna?
+
+IK odpowiada na pytanie: **jak ustawić trzy serwa nogi, żeby stopa znalazła się
+w zadanym punkcie?** Dla każdej nogi osobno (`LF` – lewa przednia, `RF` – prawa
+przednia, `LR` – lewa tylna, `RR` – prawa tylna) funkcja dostaje pozycję stopy
+`(x, y, z)` w milimetrach, liczoną względem stawu Coxa. Zwraca kąty stawów
+Coxa, Femur i Tibia.
+
+Coxa obraca nogę w poziomie, aby skierować ją w stronę punktu (`X` i `Y`).
+Femur i Tibia ustawiają jej wysięg oraz wysokość (`Y` i `Z`): Femur porusza
+górnym segmentem, a Tibia zgina lub prostuje dolny. Kierunki osi i kąty pokazują
+[widok z góry](media/top_view_1.png) oraz [widok z przodu](media/front_view_3.png).
+Jeśli punkt leży poza zasięgiem segmentów, IK zgłasza błąd zamiast zwracać
+nieosiągalne ustawienie. Pozycję stopy opisujemy w lokalnym układzie
+współrzędnych danej nogi:
+
+- `X` – kierunek wzdłuż osi przód–tył robota,
+- `Y` – kierunek na zewnątrz robota; dodatnie `Y` wskazuje na zewnątrz dla każdej nogi,
+- `Z` – kierunek pionowy; dodatnie `Z` wskazuje w górę.
+
+
+### Obliczenia
+
+#### COXA
+
+W pierwszej kolejności obliczany jest kąt COXA, widoczny jako `θ1` na
+[widoku z góry](media/top_view_1.png). Funkcja `atan2(x, y)` wyznacza kąt
+położenia stopy względem osi `+Y`, korzystając ze współrzędnych jej celu.
+Ponieważ serwo przyjmuje kąt liczony od własnego położenia zerowego, do wyniku
+dodawane jest przesunięcie `COXA_ZERO` (domyślnie 90°).
+
+#### Max reach
+
+Następnie sprawdzany jest zasięg nogi. Najpierw obliczamy poziomy zasięg od
+stawu Coxa do celu `r`, a potem odejmujemy długość segmentu Coxa. Otrzymujemy
+`r'`, czyli poziomą odległość od końca Coxa do celu. Wraz z wysokością `z`
+tworzy ona odcinek `R` widoczny na [widoku z przodu](media/front_view_3.png):
+
+```text
+r  = sqrt(x^2 + y^2)
+r' = r - l_coxa
+R  = sqrt(r'^2 + z^2)
+```
+
+Punkt jest osiągalny, gdy `R` mieści się między różnicą i sumą długości Femura
+i Tibii: `abs(l_femur - l_tibia) <= R <= l_femur + l_tibia`. W przeciwnym razie
+funkcja zgłasza błąd.
+
+#### TIBIA
+
+Kąt wewnętrzny trójkąta w stawie Tibia, na rysunku [widoku z
+przodu](media/front_view_3.png) oznaczony jako `θ3` i wyznaczamy z twierdzenia cosinusów.
+Jego boki mają długości `l_femur`, `l_tibia` i `R`:
+
+```text
+theta_tibia = acos((l_femur^2 + l_tibia^2 - R^2)
+				   / (2 * l_femur * l_tibia))
+```
+
+To jeszcze nie jest bezpośrednio kąt wysyłany do serwa. W kodzie jest on
+przeliczany na konwencję montażu Tibii i wyrażony w stopniach:
+
+```text
+kat_serwa_tibii = 180° - (degrees(theta_tibia) - TIBIA_OFFSET)
+```
+Tibia, ze względu na swój kształt ma dodany `TIBIA_OFFSET`, aby końcówka stopy przy ustawiniu poziomym całej nogi była w lini. Dodatkowo, w konwencji IK kąt Tibia jest liczony w przeciwnym kierunku, czyli `180 - TIBIA` ponieważ serwo zamontowane jest tak, że orczyk jest sztywny, a obraca się serwo. Uwidocznione jest to na rysunku [tibia offset](media/tibia_offset.png) 
+
+#### FEMUR
+
+Kąt Femura składa się z dwóch części. `α` określa kierunek od osi `-Z` do
+odcinka `R`, a `β` jest kątem między `R` i Femurem. Oba widać na [widoku z
+przodu](media/front_view_3.png). `α` obliczamy ze współrzędnych celu, a `β`
+z twierdzenia cosinusów:
+
+```text
+alpha = atan2(r', -z)
+beta  = acos((l_femur^2 + R^2 - l_tibia^2)
+			 / (2 * l_femur * R))
+theta_femur = degrees(alpha + beta)
+```
+
+Wyniki `atan2` i `acos` są w radianach, dlatego ich suma jest zamieniana na
+stopnie. Otrzymany kąt Femura oraz skorygowany kąt Tibii opisują ustawienie
+segmentów tak, aby stopa znalazła się w zadanym punkcie.
+
 ## Axis Convention
 
 - `X` - forward/backward direction; affects the coxa joint rotation,
@@ -83,6 +168,10 @@ Coordinates and lengths are given in millimeters, and angles are returned in deg
 ### Rear view
 
 ![Diagram of the leg configuration below the Y-axis](<media/rear_view_1.png>)
+
+### TIBIA offset
+
+![Tibia offset](<media/tibia_offset.png>)
 
 ## Organizacja kodu
 
