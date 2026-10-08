@@ -1,6 +1,6 @@
-﻿# QUADRUPED MT 404 APEX
+﻿# MT 404 "APEX" - QUADRUPED ROBOT
 
-This repository contains the MT 404 Apex quadruped robot project, with inverse kinematics, gait generation, and a browser-based visualization. The code separates the robot logic from the simulator interface, allowing movement, servo calibration, and gait parameters to be tested without physical hardware.
+This repository contains the MT 404 Apex quadruped robot project, with inverse kinematics, gait generation, and a browser-based visualization. The robot is controlled with a gamepad, and servo commands are sent to the ESP over UDP. The code separates the robot logic from the simulator interface, allowing movement, servo calibration, and gait parameters to be tested without physical hardware.
 
 ![sim](<media/sim.png>)
 ![Overview](<media/overview.png>)
