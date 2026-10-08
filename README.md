@@ -1,43 +1,26 @@
-# QUADRUPED MT 404 APEX
+﻿# QUADRUPED MT 404 APEX
 
-To repozytorium zawiera projekt czteronożnego robota quadruped MT 404 Apex z implementacją kinematyki odwrotnej, generowania chodu oraz wizualizacji działania w przeglądarce. Kod oddziela logikę robota od interfejsu symulatora, dzięki czemu można testować ruch, kalibrację serw i parametry chodu bez bezpośredniego sprzętu.
+This repository contains the MT 404 Apex quadruped robot project, with inverse kinematics, gait generation, and a browser-based visualization. The code separates the robot logic from the simulator interface, allowing movement, servo calibration, and gait parameters to be tested without physical hardware.
 
-## Symulator HTML
+## HTML Simulator
 
-Uruchom z katalogu projektu: `python simulator.py`, następnie otwórz
-http://127.0.0.1:8000. Inny port: `python simulator.py --port 8080`.
-Serwer wymaga tylko biblioteki standardowej Pythona; przeglądarka pobiera
-Three.js z CDN, więc pierwsze otwarcie wymaga Internetu.
+Run `python simulator.py` from the project directory, then open
+http://127.0.0.1:8000. To use a different port: `python simulator.py --port 8080`.
+The server requires only the Python standard library; the browser loads
+Three.js from a CDN, so opening the simulator for the first time requires Internet access.
 
-Sterowanie: WASD lub lewy drążek pada, mysz do obrotu i kółko do zoomu.
-Panel „Gait parameters” pozwala zmieniać na żywo `gait_speed` (0–5 Hz),
-`step_length` (0–150 mm), `step_height` (0–100 mm) i `z_height` (−200–0 mm).
-`z_height` ustawia wspólne bazowe Z stóp, zachowując indywidualne X i Y nóg;
-bardziej ujemna wartość zwiększa wysokość korpusu nad podłożem. Ustawienia są osobne
-dla każdej karty, a odświeżenie przywraca wartości z `robot/config.py`.
-Suwaki `x_offset_front`, `y_offset_front`, `x_offset_rear` i `y_offset_rear`
-ustawiają bazowe współrzędne stóp przedniej i tylnej pary nóg (w mm).
-Zakres X: −150–150 mm; Y: 50–250 mm. Dodatnie X przesuwa stopy do przodu,
-a większe Y odsuwa je na zewnątrz po obu stronach robota.
-Pauza zatrzymuje fazę, a pozycja spoczynkowa zeruje stan chodu.
-`robot/motion.py` jest wspólnym źródłem obliczeń dla `main.py` i `simulator.py`:
-korzysta z konfiguracji, trajektorii, kinematyki i kalibracji serw w pakiecie `robot`. Zmiany konfiguracji
-wymagają ponownego uruchomienia serwera. JavaScript tylko rysuje otrzymane
-punkty, bez własnego IK i generatora chodu. Stare wersje są przechowywane w `archive/`.
+Controls: WASD or the left gamepad stick for movement, the mouse to rotate the view,
+and the scroll wheel to zoom.
+The "Gait parameters" panel lets you adjust `gait_speed`,
+`step_length`, `step_height`, and `z_height` live.
+`z_height` sets a shared baseline.
+The `x_offset_front`, `y_offset_front`, `x_offset_rear`, and `y_offset_rear`
+sliders set the baseline foot coordinates for the front and rear leg pairs (in mm).
+Configuration changes require restarting the server. JavaScript
+only draws the received points and has no IK solver or gait generator of its own.
 
-Korpus jest przybliżoną bryłą, mocowania wynikają z `LEG_ORIGINS`.
-Podgląd pokazuje wszystkie cztery nogi i kąty 12 serw po inwersji, trimie
-i limitach. Pomarańczowe oznaczenia sygnalizują ograniczenia, a turkusowe
-pierścienie pokazują zadane pozycje stóp. Geometria po ograniczeniach jest
-odtwarzana przez kinematykę prostą w Pythonie, z konwencją montażu z `robot/kinematics.py`.
-Nie jest to symulacja fizyki, kontaktu z podłożem ani kolizji.
-`main.py` nadal wysyła tylko `ACTIVE_SERVO_IDS` (obecnie 1–6).
-Symulator nie importuje sterownika pada ani nie wysyła UDP.
-Każda karta ma własny stan; obliczenia używają kroku 20 ms, więc przy wolnych
-odpowiedziach animacja zwalnia zamiast pomijać klatki.
-
-
-The project contains inverse kinematics (IK) calculations for a three-segment quadruped leg and a visualization of its movement.
+The body is represented by an approximate solid shape, and the mounting positions
+come from `LEG_ORIGINS`.
 
 ## Inverse Kinematics
 
@@ -54,43 +37,44 @@ l_femur = 100.0
 l_tibia = 149.10
 ```
 
-## Jak działa kinematyka odwrotna?
+## How Does Inverse Kinematics Work?
 
-IK odpowiada na pytanie: **jak ustawić trzy serwa nogi, żeby stopa znalazła się
-w zadanym punkcie?** Dla każdej nogi osobno (`LF` – lewa przednia, `RF` – prawa
-przednia, `LR` – lewa tylna, `RR` – prawa tylna) funkcja dostaje pozycję stopy
-`(x, y, z)` w milimetrach, liczoną względem stawu Coxa. Zwraca kąty stawów
-Coxa, Femur i Tibia.
+IK answers the question: **how should the three leg servos be positioned to place
+the foot at a specified point?** For each leg separately (`LF` – left front,
+`RF` – right front, `LR` – left rear, `RR` – right rear), the function receives
+the foot position `(x, y, z)` in millimeters relative to the Coxa joint. It returns
+the Coxa, Femur, and Tibia joint angles.
 
-Coxa obraca nogę w poziomie, aby skierować ją w stronę punktu (`X` i `Y`).
-Femur i Tibia ustawiają jej wysięg oraz wysokość (`Y` i `Z`): Femur porusza
-górnym segmentem, a Tibia zgina lub prostuje dolny. Kierunki osi i kąty pokazują
-[widok z góry](media/top_view_1.png) oraz [widok z przodu](media/front_view_3.png).
-Jeśli punkt leży poza zasięgiem segmentów, IK zgłasza błąd zamiast zwracać
-nieosiągalne ustawienie. Pozycję stopy opisujemy w lokalnym układzie
-współrzędnych danej nogi:
+Coxa rotates the leg horizontally to point it toward the target (`X` and `Y`).
+Femur and Tibia set its reach and height (`Y` and `Z`): Femur moves the upper
+segment, while Tibia bends or straightens the lower segment. The axis directions
+and angles are shown in the [top view](media/top_view_1.png) and
+[front view](media/front_view_3.png).
+If the point lies beyond the segments' reach, IK raises an error instead of
+returning an unreachable configuration. The foot position is expressed in the
+local coordinate system of each leg:
 
-- `X` – kierunek wzdłuż osi przód–tył robota,
-- `Y` – kierunek na zewnątrz robota; dodatnie `Y` wskazuje na zewnątrz dla każdej nogi,
-- `Z` – kierunek pionowy; dodatnie `Z` wskazuje w górę.
+- `X` – direction along the robot's front-to-back axis,
+- `Y` – direction outward from the robot; positive `Y` points outward for every leg,
+- `Z` – vertical direction; positive `Z` points upward.
 
-
-### Obliczenia
+### Calculations
 
 #### COXA
 
-W pierwszej kolejności obliczany jest kąt COXA, widoczny jako `θ1` na
-[widoku z góry](media/top_view_1.png). Funkcja `atan2(x, y)` wyznacza kąt
-położenia stopy względem osi `+Y`, korzystając ze współrzędnych jej celu.
-Ponieważ serwo przyjmuje kąt liczony od własnego położenia zerowego, do wyniku
-dodawane jest przesunięcie `COXA_ZERO` (domyślnie 90°).
+The COXA angle is calculated first, shown as `θ1` in the
+[top view](media/top_view_1.png). The `atan2(x, y)` function determines the angle
+of the foot position relative to the `+Y` axis using the target coordinates.
+Since the servo takes an angle measured from its own zero position, the
+`COXA_ZERO` offset (90° by default) is added to the result.
 
-#### Max reach
+#### Maximum Reach
 
-Następnie sprawdzany jest zasięg nogi. Najpierw obliczamy poziomy zasięg od
-stawu Coxa do celu `r`, a potem odejmujemy długość segmentu Coxa. Otrzymujemy
-`r'`, czyli poziomą odległość od końca Coxa do celu. Wraz z wysokością `z`
-tworzy ona odcinek `R` widoczny na [widoku z przodu](media/front_view_3.png):
+The leg's reach is checked next. First, we calculate the horizontal distance `r`
+from the Coxa joint to the target, then subtract the Coxa segment length. This
+gives `r'`, the horizontal distance from the end of Coxa to the target. Together
+with the height `z`, it forms the segment `R` shown in the
+[front view](media/front_view_3.png):
 
 ```text
 r  = sqrt(x^2 + y^2)
@@ -98,46 +82,51 @@ r' = r - l_coxa
 R  = sqrt(r'^2 + z^2)
 ```
 
-Punkt jest osiągalny, gdy `R` mieści się między różnicą i sumą długości Femura
-i Tibii: `abs(l_femur - l_tibia) <= R <= l_femur + l_tibia`. W przeciwnym razie
-funkcja zgłasza błąd.
+The point is reachable when `R` lies between the difference and the sum of the
+Femur and Tibia lengths: `abs(l_femur - l_tibia) <= R <= l_femur + l_tibia`.
+Otherwise, the function raises an error.
 
 #### TIBIA
 
-Kąt wewnętrzny trójkąta w stawie Tibia, na rysunku [widoku z
-przodu](media/front_view_3.png) oznaczony jako `θ3` i wyznaczamy z twierdzenia cosinusów.
-Jego boki mają długości `l_femur`, `l_tibia` i `R`:
+The triangle's interior angle at the Tibia joint, labeled `θ3` in the
+[front view](media/front_view_3.png), is calculated using the law of cosines.
+The side lengths are `l_femur`, `l_tibia`, and `R`:
 
 ```text
 theta_tibia = acos((l_femur^2 + l_tibia^2 - R^2)
-				   / (2 * l_femur * l_tibia))
+                   / (2 * l_femur * l_tibia))
 ```
 
-To jeszcze nie jest bezpośrednio kąt wysyłany do serwa. W kodzie jest on
-przeliczany na konwencję montażu Tibii i wyrażony w stopniach:
+This is not yet the angle sent directly to the servo. The code converts it to
+the Tibia mounting convention and expresses it in degrees:
 
 ```text
-kat_serwa_tibii = 180° - (degrees(theta_tibia) - TIBIA_OFFSET)
+tibia_servo_angle = 180° - (degrees(theta_tibia) - TIBIA_OFFSET)
 ```
-Tibia, ze względu na swój kształt ma dodany `TIBIA_OFFSET`, aby końcówka stopy przy ustawiniu poziomym całej nogi była w lini. Dodatkowo, w konwencji IK kąt Tibia jest liczony w przeciwnym kierunku, czyli `180 - TIBIA` ponieważ serwo zamontowane jest tak, że orczyk jest sztywny, a obraca się serwo. Uwidocznione jest to na rysunku [tibia offset](media/tibia_offset.png) 
+
+Because of Tibia's shape, `TIBIA_OFFSET` is added to align the foot tip with the
+rest of the leg when the entire leg is horizontal. In addition, the Tibia angle
+is measured in the opposite direction in the IK convention, using `180 - TIBIA`,
+because the servo is mounted with a fixed horn while the servo body rotates.
+This is illustrated in the [tibia offset diagram](media/tibia_offset.png).
 
 #### FEMUR
 
-Kąt Femura składa się z dwóch części. `α` określa kierunek od osi `-Z` do
-odcinka `R`, a `β` jest kątem między `R` i Femurem. Oba widać na [widoku z
-przodu](media/front_view_3.png). `α` obliczamy ze współrzędnych celu, a `β`
-z twierdzenia cosinusów:
+The Femur angle consists of two parts. `α` describes the direction from the `-Z`
+axis to the segment `R`, and `β` is the angle between `R` and Femur. Both are
+shown in the [front view](media/front_view_3.png). We calculate `α` from the
+target coordinates and `β` using the law of cosines:
 
 ```text
 alpha = atan2(r', -z)
 beta  = acos((l_femur^2 + R^2 - l_tibia^2)
-			 / (2 * l_femur * R))
+             / (2 * l_femur * R))
 theta_femur = degrees(alpha + beta)
 ```
 
-Wyniki `atan2` i `acos` są w radianach, dlatego ich suma jest zamieniana na
-stopnie. Otrzymany kąt Femura oraz skorygowany kąt Tibii opisują ustawienie
-segmentów tak, aby stopa znalazła się w zadanym punkcie.
+The results of `atan2` and `acos` are in radians, so their sum is converted to
+degrees. The resulting Femur angle and the corrected Tibia angle describe the
+segment positions needed to place the foot at the target point.
 
 ## Axis Convention
 
@@ -153,79 +142,81 @@ Coordinates and lengths are given in millimeters, and angles are returned in deg
 
 ![Diagram of the coxa angle and radial distance](<media/top_view_1.png>)
 
-### Front view
+### Front View
 
 ![Diagram of the leg configuration below the Y-axis](<media/front_view_3.png>)
 
-### Rear view
+### Rear View
 
 ![Diagram of the leg configuration below the Y-axis](<media/rear_view_1.png>)
 
-### TIBIA offset
+### Tibia Offset
 
 ![Tibia offset](<media/tibia_offset.png>)
 
-###
+### Servo Mounting Angles
 
-To zdjecie pokazuje wstępne ustawienie serwa przed montażem konstrukcji nogi. Każde serwo powinno mieć ustawione 90 stopni w konfiguracji pokazanej na zdjęciu.
+This photo shows the initial servo position before assembling the leg structure.
+Each servo should be set to 90 degrees in the configuration shown in the photo.
 
-![Mounting angels](<media/mounting_angles.png>)
+![Mounting angles](<media/mounting_angles.png>)
 
-## Konfiguracja robota i komunikacja
+## Robot Configuration and Communication
 
-Ustawienia robota znajdują się w `robot/config.py`. Najważniejsze grupy:
+The robot settings are in `robot/config.py`. The main groups are:
 
-- **Geometria i chód:** `l_coxa`, `l_femur` i `l_tibia` określają długości
-	segmentów w milimetrach. `gait_speed`, `step_length`, `step_height` i
-	`ramp_time` sterują tempem oraz kształtem kroku. `LEG_PHASE_OFFSET` ustawia
-	przesunięcia faz między nogami, a `LEG_ORIGINS` określa położenie ich mocowań
-	używane przez wizualizację.
-- **Pozycje stóp:** `p_start` zawiera pozycje początkowe stóp w lokalnym układzie
-	każdej nogi. Wartości `x_offset_front`, `y_offset_front`, `x_offset_rear`,
-	`y_offset_rear` i `z_height` pozwalają ustawić je dla przedniej i tylnej pary.
-- **Serwa:** w `LEGS` dla każdego stawu podaje się ID serwa, kierunek obrotu
-	(`inverted`), zakres dozwolonych kątów (`limits`) i korektę montażową (`trim`).
-	`robot/servos.py` stosuje inwersję i trim, a następnie ogranicza kąt do podanego
-	zakresu. Limity należy dobrać do mechanicznego zakresu konkretnego serwa.
-	`COXA_ZERO` i `TIBIA_OFFSET` korygują kąty wynikające z przyjętej konwencji
-	oraz sposobu montażu tych stawów.
-- **Sterowanie:** `stick_deadzone` ustawia martwą strefę drążka, a
-	`CONTROLLER_DEADZONE` martwą strefę sterowania ruchem. `HEIGHT_STEP` i
-	`HEIGHT_LIMITS` określają zmianę i zakres wysokości korpusu; `DPAD_UP_BUTTON`
-	oraz `DPAD_DOWN_BUTTON` są zapasowymi numerami przycisków D-pada.
-- **Komunikacja:** `ESP` zawiera adres IP i port odbiornika, a
-	`ACTIVE_SERVO_IDS` wybiera serwa, do których wysyłane są komendy.
-	`LOOP_INTERVAL` określa odstęp między iteracjami pętli sterowania.
+- **Geometry and gait:** `l_coxa`, `l_femur`, and `l_tibia` define the segment
+  lengths in millimeters. `gait_speed`, `step_length`, `step_height`, and
+  `ramp_time` control the step speed and shape. `LEG_PHASE_OFFSET` sets phase
+  offsets between the legs, while `LEG_ORIGINS` defines their mounting positions
+  used by the visualization.
+- **Foot positions:** `p_start` contains the initial foot positions in each leg's
+  local coordinate system. `x_offset_front`, `y_offset_front`, `x_offset_rear`,
+  `y_offset_rear`, and `z_height` let you set these for the front and rear pairs.
+- **Servos:** `LEGS` specifies each joint's servo ID, rotation direction
+  (`inverted`), allowed angle range (`limits`), and mounting correction (`trim`).
+  `robot/servos.py` applies inversion and trim, then clamps the angle to the
+  specified range. Limits should match the mechanical range of the particular
+  servo. `COXA_ZERO` and `TIBIA_OFFSET` correct angles according to the chosen
+  convention and the way these joints are mounted.
+- **Controls:** `stick_deadzone` sets the stick dead zone, while
+  `CONTROLLER_DEADZONE` sets the movement control dead zone. `HEIGHT_STEP` and
+  `HEIGHT_LIMITS` define the body height increment and range; `DPAD_UP_BUTTON`
+  and `DPAD_DOWN_BUTTON` are fallback D-pad button indices.
+- **Communication:** `ESP` contains the receiver's IP address and port, while
+  `ACTIVE_SERVO_IDS` selects the servos that receive commands.
+  `LOOP_INTERVAL` defines the interval between control loop iterations.
 
-Program `main.py` wysyła komendy do ESP przez UDP. `robot/transport.py` koduje
-je jako JSON, na przykład `{"set_servo": {"1": 90.0}}`; kąty są w programie
-robota zaokrąglane do 0,1 stopnia. Odbiornik ESP musi być skonfigurowany tak, by
-nasłuchiwał pod adresem z `ESP` i rozumiał ten format. Symulator HTML nie wysyła
-komend do robota. Zmiany konfiguracji zastosuj po ponownym uruchomieniu
-programu robota lub serwera symulatora.
+`main.py` sends commands to the ESP over UDP. `robot/transport.py` encodes them
+as JSON, for example `{"set_servo": {"1": 90.0}}`; the robot program rounds angles
+to 0.1 degrees. The ESP receiver must be configured to listen at the address
+specified in `ESP` and understand this format. The HTML simulator does not send
+commands to the robot. Configuration changes take effect after restarting the
+robot program or the simulator server.
 
-## Organizacja kodu
+## Code Organization
 
-- `main.py`: uruchomienie sprzętu i pętla sterowania robotem.
-- `robot/config.py`: geometria, parametry chodu, kalibracja, adres ESP i aktywne serwa.
-- `robot/gait.py`: trajektorie stóp i normalizacja kierunku.
-- `robot/kinematics.py`: IK i FK w tej samej konwencji kątów.
-- `robot/servos.py`: inwersja, trim, ograniczanie kątów i odtwarzanie kątów do FK.
-- `robot/motion.py`: obliczanie klatki i wspólny krok ruchu dla robota i symulatora.
-- `robot/joystick.py`: otwieranie, odczyt i zamykanie pada przez funkcje.
-- `robot/transport.py`: socket UDP i wspólny format komend ESP.
-- `simulator.py`: walidacja API, przygotowanie podglądu i serwer HTTP.
-- `simulator/`: HTML, CSS i JavaScript podglądu.
-- `tools/`: narzędzia pomocnicze; 
-- `archive/`: stare wersje.
+- `main.py`: hardware startup and the robot control loop.
+- `robot/config.py`: geometry, gait parameters, calibration, ESP address, and active servos.
+- `robot/gait.py`: foot trajectories and direction normalization.
+- `robot/kinematics.py`: IK and FK using the same angle convention.
+- `robot/servos.py`: inversion, trim, angle limiting, and angle reconstruction for FK.
+- `robot/motion.py`: frame calculation and the shared motion step for the robot and simulator.
+- `robot/joystick.py`: functions for opening, reading, and closing the gamepad.
+- `robot/transport.py`: UDP socket and the shared ESP command format.
+- `simulator.py`: API validation, preview preparation, and the HTTP server.
+- `simulator/`: HTML, CSS, and JavaScript for the preview.
+- `tools/`: helper tools.
+- `archive/`: older versions.
 
-Stan ruchu jest zwykłym słownikiem z polami `phase`, `ramp`, `direction`.
-`step_motion(state, x, y, elapsed)` zwraca nowy stan i klatkę bez zmiany wejściowego
-słownika. Import modułów nie otwiera pada ani socketu. Zasoby są zamykane po
-zakończeniu programu. Jedyna własna klasa w kodzie aplikacji to handler wymagany
-przez standardowy serwer HTTP.
+The motion state is a plain dictionary with the fields `phase`, `ramp`, and
+`direction`. `step_motion(state, x, y, elapsed)` returns a new state and a frame
+without modifying the input dictionary. Importing modules does not open the
+gamepad or a socket. Resources are closed when the program exits. The only
+custom class in the application code is the handler required by the standard
+HTTP server.
 
-Uruchamiaj z głównego katalogu projektu:
+Run these commands from the project's root directory:
 
 ```sh
 python main.py
@@ -235,7 +226,7 @@ python tools/print_angles.py
 python -m robot.joystick
 ```
 
-Sterowanie robotem i diagnostyka pada wymagają `pygame`.
-Ręczne sterowanie przyjmuje końcowe kąty serw: stosuje limity, bez ponownego
-nakładania inwersji i trimu. Program robota zachowuje zaokrąglenie do 0,1 stopnia;
-narzędzie ręczne zachowuje podaną precyzję.
+Robot control and gamepad diagnostics require `pygame`.
+Manual control accepts final servo angles: it applies limits without reapplying
+inversion or trim. The robot program rounds angles to 0.1 degrees; the manual
+tool preserves the supplied precision.
