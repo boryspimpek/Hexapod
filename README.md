@@ -233,3 +233,33 @@ Robot control and gamepad diagnostics require `pygame`.
 Manual control accepts final servo angles: it applies limits without reapplying
 inversion or trim. The robot program rounds angles to 0.1 degrees; the manual
 tool preserves the supplied precision.
+
+
+## Two PCA9685 boards (ESP32)
+
+`esp32.ino` supports two boards on the same I2C bus. Keep the first at
+`0x40`; bridge the **A0 address pads** on the second to select `0x41`.
+Connect both SDA pins to ESP32 GPIO 21, both SCL pins to GPIO 22,
+both VCC pins to 3.3 V, and connect all grounds together. Connect servo
+power to V+ using an external supply suitable for the servos; do not
+power the servos from the ESP32 3.3 V pin.
+
+The default wiring is:
+
+| Servo IDs | PCA9685 address | Channels, in ID order |
+| --- | --- | --- |
+| 1-6 | 0x40 | 0-5 |
+| 7-12 | 0x41 | 0-5 |
+
+Each row in `legServos` contains `{id, board, channel, calibration, startAngle}`.
+Board `0` selects `PCA_ADDRS[0]`, board `1` selects `PCA_ADDRS[1]`.
+Change this table to match your wiring; the existing per-servo pulse calibration
+and starting angles are preserved. Startup prints which boards were found.
+
+Python keeps sending logical IDs, for example
+`{"set_servo":{"1":90,"7":120}}` selects channel 0 on each board.
+No Python protocol changes are needed. Set `ESP` in `robot/config.py` to the
+IP printed by the ESP32. Run `python -m tools.manual_servos` to test one ID
+at a time within its configured limits. With `SEND_REPLY` set to `false`,
+the manual tool reports no reply even when the command was executed;
+set it to `true` for OK/ERR replies during manual tests.
