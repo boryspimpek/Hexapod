@@ -35,15 +35,17 @@ def parameter_specs():
             for name, spec in PARAMETER_SPECS.items()}
 
 
-def joint_points(name, angles):
+def joint_points(name, angles, body_offset=(0, 0, 0)):
     points = forward_kinematics(angles, cfg.l_coxa, cfg.l_femur, cfg.l_tibia)
-    return [world_point(name, point) for point in points]
+    return [world_point(name, point, body_offset) for point in points]
 
 
-def world_point(name, point):
+def world_point(name, point, body_offset=(0, 0, 0)):
     origin = cfg.LEG_ORIGINS[name]
     side = 1 if name.startswith("l") else -1
-    return [origin[0] + point[0], origin[1] + side * point[1], origin[2] + point[2]]
+    return [origin[0] + point[0] + body_offset[0],
+            origin[1] + side * point[1] + body_offset[1],
+            origin[2] + point[2] + body_offset[2]]
 
 
 def simulate(data):
@@ -54,11 +56,13 @@ def simulate(data):
         if not math.isfinite(value) or not spec["min"] <= value <= spec["max"]:
             raise ValueError(f"{name}: wymagany zakres {spec['min']}–{spec['max']}")
     values = {key: float(data.get(key, default)) for key, default in
-              (("phase", 0), ("ramp", 0), ("elapsed", 0.02), ("x", 0), ("y", 0))}
+              (("phase", 0), ("ramp", 0), ("elapsed", 0.02), ("x", 0), ("y", 0),
+               ("right_x", 0), ("right_y", 0))}
     if not all(math.isfinite(v) for v in values.values()):
         raise ValueError("Wartości muszą być skończone")
     if not (0 <= values["phase"] < 1 and 0 <= values["ramp"] <= 1
-            and 0 <= values["elapsed"] <= 0.1 and abs(values["x"]) <= 1 and abs(values["y"]) <= 1):
+            and 0 <= values["elapsed"] <= 0.1
+            and all(abs(values[key]) <= 1 for key in ("x", "y", "right_x", "right_y"))):
         raise ValueError("Parametry poza zakresem")
     direction = tuple(data.get("direction", (0, 0)))
     if len(direction) != 2 or not all(isinstance(v, (int, float)) and math.isfinite(v) and abs(v) <= 1 for v in direction):
@@ -67,7 +71,11 @@ def simulate(data):
     # Omitted XY overrides retain each leg's configured starting position.
     motion_parameters = {name: value for name, value in parameters.items()
                          if "_offset_" not in name or name in data}
-    state, frame = step_motion(state, values["x"], values["y"], values["elapsed"], **motion_parameters)
+    state, frame = step_motion(state, values["x"], values["y"], values["elapsed"],
+                               body_x=values["right_y"] * cfg.BODY_SHIFT_MAX,
+                               body_y=values["right_x"] * cfg.BODY_SHIFT_MAX,
+                               **motion_parameters)
+    body_offset = frame["body_offset"]
     for name, leg in frame["legs"].items():
         geometric, limited = [], []
         for joint, raw in zip(JOINT_NAMES, leg["raw_angles"]):
@@ -75,11 +83,11 @@ def simulate(data):
             command = leg["servo_angles"][joint]
             limited.append(abs(command - apply_offsets(spec[cfg.SERVO_ID], raw)) > 1e-8)
             geometric.append(remove_offsets(spec[cfg.SERVO_ID], command))
-        leg["points"] = joint_points(name, geometric)
-        leg["target_world"] = world_point(name, leg["target"])
+        leg["points"] = joint_points(name, geometric, body_offset)
+        leg["target_world"] = world_point(name, leg["target"], body_offset)
         leg["limited"] = limited
     frame.update(state)
-    frame.update(origins=cfg.LEG_ORIGINS,
+    frame.update(origins={name: world_point(name, (0, 0, 0), body_offset) for name in cfg.LEGS},
                  ground=parameters["z_height"])
     return frame
 

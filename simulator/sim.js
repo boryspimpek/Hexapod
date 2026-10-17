@@ -195,7 +195,8 @@ Object.values(LEGS).forEach(leg => {
   scene.add(leg.target);
 });
 addEventListener("keydown", e => {
-  if (["KeyW", "KeyA", "KeyS", "KeyD"].includes(e.code) && !e.target.matches("input,button")) {
+  if (["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]
+      .includes(e.code) && !e.target.matches("input,button")) {
     keys.add(e.code); e.preventDefault();
   }
 });
@@ -203,22 +204,26 @@ addEventListener("keyup", e => keys.delete(e.code));
 addEventListener("blur", () => keys.clear());
 document.addEventListener("visibilitychange", () => keys.clear());
 function controls() {
-  if (document.hidden) return {x: 0, y: 0};
+  if (document.hidden) return {x: 0, y: 0, right_x: 0, right_y: 0};
   const pad = [...(navigator.getGamepads?.() || [])].find(p => p && p.connected);
   // Same per-axis deadzone/rescaling as PS4Controller, then the main.py axis swap.
   const axis = v => Math.abs(v) < .15 ? 0 : Math.sign(v) * (Math.abs(v) - .15) / .85;
-  return pad ? {x: axis(-pad.axes[1]), y: axis(pad.axes[0])} :
+  return pad ? {x: axis(-(pad.axes[1] ?? 0)), y: axis(pad.axes[0] ?? 0),
+                right_x: axis(pad.axes[2] ?? 0), right_y: axis(-(pad.axes[3] ?? 0))} :
     {x: Number(keys.has("KeyW")) - Number(keys.has("KeyS")),
-     y: Number(keys.has("KeyD")) - Number(keys.has("KeyA"))};
+     y: Number(keys.has("KeyD")) - Number(keys.has("KeyA")),
+     right_x: Number(keys.has("ArrowRight")) - Number(keys.has("ArrowLeft")),
+     right_y: Number(keys.has("ArrowUp")) - Number(keys.has("ArrowDown"))};
 }
 function drawFrame(frame) {
   const origins = Object.values(frame.origins);
   const xs = origins.map(p => p[0]), ys = origins.map(p => p[1]);
   const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+  const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
   body.scale.set(Math.max(...xs) - Math.min(...xs) + 30,
     Math.max(...ys) - Math.min(...ys), 30);
-  body.position.set(cx, 0, 0);
-  nose.scale.set(12, 30, 18); nose.position.set(Math.max(...xs) + 15, 0, 0);
+  body.position.set(cx, cy, 0);
+  nose.scale.set(12, 30, 18); nose.position.set(Math.max(...xs) + 15, cy, 0);
   grid.position.z = frame.ground;
   let limitedCount = 0;
   Object.entries(frame.legs).forEach(([name, result]) => {

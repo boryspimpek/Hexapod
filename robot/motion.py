@@ -11,7 +11,12 @@ JOINT_NAMES = ("coxa", "femur", "tibia")
 def calculate_frame(phase=0.0, ramp=0.0, direction=(0.0, 0.0), *,
                     step_length=None, step_height=None, z_height=None,
                     x_offset_front=None, y_offset_front=None,
-                    x_offset_rear=None, y_offset_rear=None):
+                    x_offset_rear=None, y_offset_rear=None,
+                    body_x=0.0, body_y=0.0):
+    """Body translation in mm: +body_x forward, +body_y right.
+
+    Subtract body translation from foot targets to keep feet planted.
+    """
     step_length = cfg.step_length if step_length is None else step_length
     step_height = cfg.step_height if step_height is None else step_height
     z_height = cfg.z_height if z_height is None else z_height
@@ -19,12 +24,17 @@ def calculate_frame(phase=0.0, ramp=0.0, direction=(0.0, 0.0), *,
     for name, joints in cfg.LEGS.items():
         x_offset, y_offset = ((x_offset_front, y_offset_front) if name.endswith("f")
                               else (x_offset_rear, y_offset_rear))
-        start = (cfg.p_start[name][0] if x_offset is None else x_offset,
-                 cfg.p_start[name][1] if y_offset is None else y_offset, z_height)
+        side = 1 if name.startswith("l") else -1
+        start = ((cfg.p_start[name][0] if x_offset is None else x_offset) - body_x,
+                 (cfg.p_start[name][1] if y_offset is None else y_offset) + side * body_y,
+                 z_height)
+        # Input direction: forward/right. Local +Y points outward on each leg.
+        local_direction = (direction[0],
+                           -direction[1] if name.startswith("l") else direction[1])
         target = calculate_trajectory(
             (phase + cfg.LEG_PHASE_OFFSET[name]) % 1.0,
             step_length * ramp, step_height * ramp,
-            start, *direction,
+            start, *local_direction,
         )
         raw = inverse_kinematics(*target, cfg.l_coxa, cfg.l_femur, cfg.l_tibia)
         corrected = {}
@@ -33,7 +43,7 @@ def calculate_frame(phase=0.0, ramp=0.0, direction=(0.0, 0.0), *,
             corrected[joint] = correct_angle(sid, angle)
             servos[sid] = corrected[joint]
         legs[name] = {"target": target, "raw_angles": raw, "servo_angles": corrected}
-    return {"legs": legs, "servos": servos}
+    return {"legs": legs, "servos": servos, "body_offset": (body_x, -body_y, 0.0)}
 
 
 def advance_ramp(ramp, running, elapsed):
@@ -55,7 +65,8 @@ def initial_state():
 def step_motion(state, x, y, elapsed, *, gait_speed=None, step_length=None,
                 step_height=None, z_height=None,
                 x_offset_front=None, y_offset_front=None,
-                x_offset_rear=None, y_offset_rear=None):
+                x_offset_rear=None, y_offset_rear=None,
+                body_x=0.0, body_y=0.0):
     """Zwraca (nowy stan, klatka), nie modyfikując przekazanego stanu.
 
     Klatka używa bieżącej fazy i nowej rampy; zwrócony stan zawiera
@@ -68,7 +79,8 @@ def step_motion(state, x, y, elapsed, *, gait_speed=None, step_length=None,
                             step_length=step_length, step_height=step_height,
                             z_height=z_height,
                             x_offset_front=x_offset_front, y_offset_front=y_offset_front,
-                            x_offset_rear=x_offset_rear, y_offset_rear=y_offset_rear)
+                            x_offset_rear=x_offset_rear, y_offset_rear=y_offset_rear,
+                            body_x=body_x, body_y=body_y)
     updated = {"phase": next_phase(state["phase"], ramp, elapsed, gait_speed=gait_speed),
                "ramp": ramp, "direction": direction}
     return updated, frame

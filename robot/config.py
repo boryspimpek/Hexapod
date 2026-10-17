@@ -2,8 +2,8 @@
 
 l_coxa, l_femur, l_tibia = 43.73, 100.0, 149.10
 
-gait_speed = 1  # ile "cykli chodu" na sekundę — to jest "prędkość"
-step_length = 20.0  # długość kroku w mm
+gait_speed = 1.5  # ile "cykli chodu" na sekundę — to jest "prędkość"
+step_length = 40.0  # długość kroku w mm
 step_height = 40.0  # wysokość unoszenia stopy w mm
 ramp_time = 0.5  # czas narastania/zanikania prędkości chodu w sekundach
 stick_deadzone = 0.1  # strefa martwa joystika
@@ -11,10 +11,10 @@ stick_deadzone = 0.1  # strefa martwa joystika
 # Pozycja startowa stopy [mm] (x, y, z) w układzie współrzędnych danej nogi
 
 z_height = -40
-x_offset_front = 30
-y_offset_front = 130
-x_offset_rear = -30
-y_offset_rear = 130
+x_offset_front = 110
+y_offset_front = 160
+x_offset_rear = -110
+y_offset_rear = 160
 p_start = {
     'lf': (x_offset_front, y_offset_front, z_height),
     'rf': (x_offset_front, y_offset_front, z_height),
@@ -28,12 +28,12 @@ SERVO_ID, INVERTED, LIMITS, TRIM = 0, 1, 2, 3
 LEGS = {
     'lf': {
         'coxa':  (1,  True,  (50, 110), 0.0),
-        'femur': (2,  False,  (90, 180), 0.0),
+        'femur': (2,  False,  (90, 180), -2.5),
         'tibia': (3,  False,  (0, 130), 0.0),
     },
     'rf': {
         'coxa':  (4,  False, (70, 130), 0.0),
-        'femur': (5,  True, (0, 90), 0.0),
+        'femur': (5,  True, (0, 90), 2.5),
         'tibia': (6,  True, (50, 180), 0.0),
     },
     'lr': {
@@ -68,6 +68,9 @@ ESP = ("192.168.0.115", 8888)
 ACTIVE_SERVO_IDS = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
 LOOP_INTERVAL = 0.02
 CONTROLLER_DEADZONE = 0.15
+RIGHT_STICK_X_AXIS = 2
+RIGHT_STICK_Y_AXIS = 3
+BODY_SHIFT_MAX = 20.0  # mm per axis at full right-stick deflection
 HEIGHT_STEP = 5.0  # mm na nacisniecie D-pada
 HEIGHT_LIMITS = (-150.0, -20.0)  # zakres z_height podczas sterowania
 # D-pad jako przyciski (fallback, gdy sterownik nie udostepnia hat).

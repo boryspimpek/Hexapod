@@ -14,6 +14,15 @@ Three.js from a CDN, so opening the simulator for the first time requires Intern
 
 Controls: WASD or the left gamepad stick for movement, the mouse to rotate the view,
 and the scroll wheel to zoom.
+The right gamepad stick (or arrow keys in the simulator) shifts the body
+forward/backward and left/right relative to the feet. Deflection sets the
+position directly; releasing the stick returns the body to center.
+`BODY_SHIFT_MAX` sets the maximum translation per axis in millimeters (20 mm
+by default). This translation is added independently of the baseline foot
+offsets and can also be used while walking.
+The hardware right-stick axis indices are `RIGHT_STICK_X_AXIS` and
+`RIGHT_STICK_Y_AXIS` in `robot/config.py` (2 and 3 by default); the browser
+uses the standard gamepad mapping (axes 2 and 3).
 The "Gait parameters" panel lets you adjust `gait_speed`,
 `step_length`, `step_height`, and `z_height` live.
 `z_height` sets a shared baseline.
