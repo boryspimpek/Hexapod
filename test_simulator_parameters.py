@@ -8,6 +8,33 @@ from simulator import simulate, parameter_specs
 
 
 class GaitParameterTests(unittest.TestCase):
+    def test_dpad_height_press_hold_release_and_reverse(self):
+        request = {"z_height": -40}
+        heights = []
+        for dpad in (1, 1, 0, 1, 0, -1):
+            frame = simulate({**request, "dpad": dpad})
+            heights.append(frame["z_height"])
+            self.assertEqual(frame["ground"], frame["z_height"])
+            for leg in frame["legs"].values():
+                self.assertEqual(leg["target"][2], frame["z_height"])
+            request = {"z_height": frame["z_height"], "previous_dpad": frame["previous_dpad"]}
+        self.assertEqual(heights, [-45, -45, -45, -50, -50, -45])
+        self.assertEqual(simulate({})["z_height"], cfg.z_height)
+
+    def test_dpad_height_limits_and_unreachable_change(self):
+        for height, dpad in ((cfg.HEIGHT_LIMITS[0], 1), (cfg.HEIGHT_LIMITS[1], -1)):
+            self.assertEqual(simulate({"z_height": height, "dpad": dpad})["z_height"], height)
+        with patch.object(cfg, "HEIGHT_STEP", 500), patch.object(cfg, "HEIGHT_LIMITS", (-500, 0)):
+            frame = simulate({"z_height": -40, "dpad": 1})
+            self.assertEqual(frame["z_height"], -40)
+            self.assertEqual(frame["previous_dpad"], 1)
+
+    def test_rejects_invalid_dpad_values(self):
+        for key in ("dpad", "previous_dpad"):
+            for value in (-2, .5, float("nan"), "1", True):
+                with self.subTest(key=key, value=value), self.assertRaises(ValueError):
+                    simulate({key: value})
+
     def test_live_settings_change_phase_and_trajectory(self):
         frame = simulate({"x": 1, "phase": (.125 - cfg.LEG_PHASE_OFFSET["rf"]) % 1, "ramp": 1,
                           "gait_speed": 2, "step_length": 80, "step_height": 20})

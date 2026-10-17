@@ -71,16 +71,32 @@ def simulate(data):
     shifting = data.get("r1", False)
     if not isinstance(shifting, bool):
         raise ValueError("r1: oczekiwano true/false")
+    dpad = data.get("dpad", 0)
+    previous_dpad = data.get("previous_dpad", 0)
+    if any(type(value) not in (int, float) or value not in (-1, 0, 1)
+           for value in (dpad, previous_dpad)):
+        raise ValueError("D-pad: wymagane -1, 0 lub 1")
+    original_height = parameters["z_height"]
+    if dpad and dpad != previous_dpad:
+        lo, hi = cfg.HEIGHT_LIMITS
+        parameters["z_height"] = max(lo, min(hi, original_height - dpad * cfg.HEIGHT_STEP))
     state = {"phase": values["phase"], "ramp": values["ramp"], "direction": direction,
              "turn": 0.0 if shifting else values["turn"]}
     # Omitted XY overrides retain each leg's configured starting position.
     motion_parameters = {name: value for name, value in parameters.items()
                          if "_offset_" not in name or name in data}
-    state, frame = step_motion(state, values["x"], values["y"], values["elapsed"],
-                               body_x=values["right_y"] * cfg.BODY_SHIFT_MAX if shifting else 0.0,
-                               body_y=values["right_x"] * cfg.BODY_SHIFT_MAX if shifting else 0.0,
-                               turn=0.0 if shifting else values["right_x"],
-                               **motion_parameters)
+    controls = dict(body_x=values["right_y"] * cfg.BODY_SHIFT_MAX if shifting else 0.0,
+                    body_y=values["right_x"] * cfg.BODY_SHIFT_MAX if shifting else 0.0,
+                    turn=0.0 if shifting else values["right_x"])
+    try:
+        state, frame = step_motion(state, values["x"], values["y"], values["elapsed"],
+                                   **controls, **motion_parameters)
+    except ValueError:
+        if parameters["z_height"] == original_height:
+            raise
+        parameters["z_height"] = motion_parameters["z_height"] = original_height
+        state, frame = step_motion(state, values["x"], values["y"], values["elapsed"],
+                                   **controls, **motion_parameters)
     body_offset = frame["body_offset"]
     for name, leg in frame["legs"].items():
         geometric, limited = [], []
@@ -94,7 +110,8 @@ def simulate(data):
         leg["limited"] = limited
     frame.update(state)
     frame.update(origins={name: world_point(name, (0, 0, 0), body_offset) for name in cfg.LEGS},
-                 ground=parameters["z_height"])
+                 ground=parameters["z_height"], z_height=parameters["z_height"],
+                 previous_dpad=dpad)
     return frame
 
 

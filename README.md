@@ -23,12 +23,16 @@ Hold **R1** while moving the right stick to shift the body forward/backward and
 left/right relative to the feet instead. Deflection sets the body position
 directly; releasing the stick or R1 returns the body to center.
 In the simulator, left/right arrows turn; **Shift + arrows** shifts the body.
+D-pad up/down (or up/down arrows without Shift in the simulator) changes
+`z_height` by `HEIGHT_STEP` per press within `HEIGHT_LIMITS`, like on the robot.
+Holding a direction does not repeat the change; release and press again.
 `BODY_SHIFT_MAX` sets the maximum translation per axis in millimeters (20 mm
 by default). This translation is added independently of the baseline foot
 offsets and can also be used while walking.
-The hardware right-stick axis indices are `RIGHT_STICK_X_AXIS` and
-`RIGHT_STICK_Y_AXIS` in `robot/config.py` (2 and 3 by default); the browser
-uses the standard gamepad mapping (axes 2 and 3).
+All hardware stick axis indices are in `robot/config.py`:
+`LEFT_STICK_X_AXIS` and `LEFT_STICK_Y_AXIS` (0 and 1 by default), and
+`RIGHT_STICK_X_AXIS` and `RIGHT_STICK_Y_AXIS` (2 and 3 by default).
+The browser uses the standard gamepad mapping (left axes 0/1, right axes 2/3).
 `R1_BUTTON` sets the hardware button index (10, verified on this controller). If your driver uses
 a different mapping, identify R1 using `python -m robot.joystick` and change
 this setting. The browser uses standard gamepad button 5 for R1.

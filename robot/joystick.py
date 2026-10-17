@@ -1,10 +1,8 @@
 """Obsługa pada PS4. Diagnostyka: python -m robot.joystick."""
 import math
 from .config import (CONTROLLER_DEADZONE, DPAD_UP_BUTTON, DPAD_DOWN_BUTTON,
+                     LEFT_STICK_X_AXIS, LEFT_STICK_Y_AXIS,
                      RIGHT_STICK_X_AXIS, RIGHT_STICK_Y_AXIS, R1_BUTTON)
-
-LEFT_STICK_X_AXIS = 0
-LEFT_STICK_Y_AXIS = 1
 
 
 def open_controller(joystick_index=0):
