@@ -56,7 +56,7 @@ LEG_PHASE_OFFSET = {
 }
 
 # Pozycje początkowe nóg (punkt coxa) w układzie współrzędnych robota (x, y, z) w mm 
-# used for visualization
+# Used for visualization and turning geometry (center and foot radii).
 LEG_ORIGINS = {
     "lf": (80, 30, 0),
     "rf": (80, -30, 0),
@@ -71,11 +71,13 @@ CONTROLLER_DEADZONE = 0.15
 RIGHT_STICK_X_AXIS = 2
 RIGHT_STICK_Y_AXIS = 3
 BODY_SHIFT_MAX = 20.0  # mm per axis at full right-stick deflection
+turn_step_angle = 10.0  # degrees of yaw per gait cycle at full stick deflection
 HEIGHT_STEP = 5.0  # mm na nacisniecie D-pada
 HEIGHT_LIMITS = (-150.0, -20.0)  # zakres z_height podczas sterowania
 # D-pad jako przyciski (fallback, gdy sterownik nie udostepnia hat).
 DPAD_UP_BUTTON = 11
 DPAD_DOWN_BUTTON = 12
+R1_BUTTON = 10  # pygame index confirmed on this controller; browser uses button 5
 
 # SERVO OFFSETS due to mounting and mechanical design. These offsets are applied 
 # to the raw angles calculated by the kinematics to get the actual servo command angles.

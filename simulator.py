@@ -22,6 +22,7 @@ PARAMETER_SPECS = {
     "gait_speed": {"min": 0, "max": 5, "step": 0.1, "unit": "Hz"},
     "step_length": {"min": 0, "max": 150, "step": 1, "unit": "mm"},
     "step_height": {"min": 0, "max": 100, "step": 1, "unit": "mm"},
+    "turn_step_angle": {"min": 0, "max": 30, "step": 0.5, "unit": "deg"},
     "z_height": {"min": -200, "max": 0, "step": 1, "unit": "mm"},
     "x_offset_front": {"min": -150, "max": 150, "step": 1, "unit": "mm"},
     "y_offset_front": {"min": 50, "max": 250, "step": 1, "unit": "mm"},
@@ -57,23 +58,28 @@ def simulate(data):
             raise ValueError(f"{name}: wymagany zakres {spec['min']}–{spec['max']}")
     values = {key: float(data.get(key, default)) for key, default in
               (("phase", 0), ("ramp", 0), ("elapsed", 0.02), ("x", 0), ("y", 0),
-               ("right_x", 0), ("right_y", 0))}
+               ("right_x", 0), ("right_y", 0), ("turn", 0))}
     if not all(math.isfinite(v) for v in values.values()):
         raise ValueError("Wartości muszą być skończone")
     if not (0 <= values["phase"] < 1 and 0 <= values["ramp"] <= 1
             and 0 <= values["elapsed"] <= 0.1
-            and all(abs(values[key]) <= 1 for key in ("x", "y", "right_x", "right_y"))):
+            and all(abs(values[key]) <= 1 for key in ("x", "y", "right_x", "right_y", "turn"))):
         raise ValueError("Parametry poza zakresem")
     direction = tuple(data.get("direction", (0, 0)))
     if len(direction) != 2 or not all(isinstance(v, (int, float)) and math.isfinite(v) and abs(v) <= 1 for v in direction):
         raise ValueError("Nieprawidłowy kierunek")
-    state = {"phase": values["phase"], "ramp": values["ramp"], "direction": direction}
+    shifting = data.get("r1", False)
+    if not isinstance(shifting, bool):
+        raise ValueError("r1: oczekiwano true/false")
+    state = {"phase": values["phase"], "ramp": values["ramp"], "direction": direction,
+             "turn": 0.0 if shifting else values["turn"]}
     # Omitted XY overrides retain each leg's configured starting position.
     motion_parameters = {name: value for name, value in parameters.items()
                          if "_offset_" not in name or name in data}
     state, frame = step_motion(state, values["x"], values["y"], values["elapsed"],
-                               body_x=values["right_y"] * cfg.BODY_SHIFT_MAX,
-                               body_y=values["right_x"] * cfg.BODY_SHIFT_MAX,
+                               body_x=values["right_y"] * cfg.BODY_SHIFT_MAX if shifting else 0.0,
+                               body_y=values["right_x"] * cfg.BODY_SHIFT_MAX if shifting else 0.0,
+                               turn=0.0 if shifting else values["right_x"],
                                **motion_parameters)
     body_offset = frame["body_offset"]
     for name, leg in frame["legs"].items():

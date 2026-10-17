@@ -28,6 +28,7 @@ class ControllerHeightTests(unittest.TestCase):
         with patch.object(cfg, 'z_height', height), \
                 patch.object(main, 'get_left_stick', return_value=(0, 0)), \
                 patch.object(main, 'get_right_stick', return_value=(0, 0)), \
+                patch.object(main, 'get_r1', return_value=False), \
                 patch.object(main, 'get_dpad_vertical', side_effect=[*directions, KeyboardInterrupt]), \
                 patch.object(main, 'send_frame', side_effect=lambda sock, frame: frames.append(frame)), \
                 patch.object(main.time, 'sleep'), patch('builtins.print'):

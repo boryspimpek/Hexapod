@@ -1,7 +1,7 @@
 """Obsługa pada PS4. Diagnostyka: python -m robot.joystick."""
 import math
 from .config import (CONTROLLER_DEADZONE, DPAD_UP_BUTTON, DPAD_DOWN_BUTTON,
-                     RIGHT_STICK_X_AXIS, RIGHT_STICK_Y_AXIS)
+                     RIGHT_STICK_X_AXIS, RIGHT_STICK_Y_AXIS, R1_BUTTON)
 
 LEFT_STICK_X_AXIS = 0
 LEFT_STICK_Y_AXIS = 1
@@ -43,6 +43,11 @@ def get_right_stick(controller, deadzone=CONTROLLER_DEADZONE):
         return (0.0, 0.0)
     return (apply_deadzone(controller.get_axis(RIGHT_STICK_X_AXIS), deadzone),
             apply_deadzone(-controller.get_axis(RIGHT_STICK_Y_AXIS), deadzone))
+
+
+def get_r1(controller):
+    """Read the body-shift modifier after get_left_stick pumps events."""
+    return controller.get_numbuttons() > R1_BUTTON and bool(controller.get_button(R1_BUTTON))
 
 
 def get_dpad_vertical(controller):

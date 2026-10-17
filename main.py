@@ -2,7 +2,7 @@
 import time
 from robot import config as cfg
 from robot.joystick import (open_controller, get_left_stick, get_right_stick,
-                            get_dpad_vertical, close_controller)
+                            get_dpad_vertical, get_r1, close_controller)
 from robot.motion import calculate_frame, initial_state, step_motion
 from robot.transport import open_socket, send_servos
 
@@ -27,7 +27,12 @@ def main_loop(controller, sock):
         last_time = current_time
         stick_x, stick_y = get_left_stick(controller)
         right_x, right_y = get_right_stick(controller)
-        requested_shift = (right_y * cfg.BODY_SHIFT_MAX, right_x * cfg.BODY_SHIFT_MAX)
+        shifting = get_r1(controller)
+        requested_shift = ((right_y * cfg.BODY_SHIFT_MAX, right_x * cfg.BODY_SHIFT_MAX)
+                           if shifting else (0.0, 0.0))
+        turn = 0.0 if shifting else right_x
+        if shifting:
+            state = {**state, "turn": 0.0}
         dpad = get_dpad_vertical(controller)
         requested_height = z_height
         if dpad and dpad != previous_dpad:
@@ -39,14 +44,15 @@ def main_loop(controller, sock):
         try:
             next_state, frame = step_motion(state, stick_y, stick_x, elapsed,
                                             z_height=requested_height,
-                                            body_x=requested_shift[0], body_y=requested_shift[1])
+                                            body_x=requested_shift[0], body_y=requested_shift[1],
+                                            turn=turn)
         except ValueError:
             if requested_height == z_height and requested_shift == body_shift:
                 raise
             print("Zmiana pozycji korpusu odrzucona: cel poza zasiegiem nogi.")
             next_state, frame = step_motion(state, stick_y, stick_x, elapsed,
                                             z_height=z_height,
-                                            body_x=body_shift[0], body_y=body_shift[1])
+                                            body_x=body_shift[0], body_y=body_shift[1], turn=turn)
             requested_height = z_height
             requested_shift = body_shift
         body_shift = requested_shift

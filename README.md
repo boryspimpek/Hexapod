@@ -14,17 +14,26 @@ Three.js from a CDN, so opening the simulator for the first time requires Intern
 
 Controls: WASD or the left gamepad stick for movement, the mouse to rotate the view,
 and the scroll wheel to zoom.
-The right gamepad stick (or arrow keys in the simulator) shifts the body
-forward/backward and left/right relative to the feet. Deflection sets the
-position directly; releasing the stick returns the body to center.
+The right gamepad stick's horizontal axis turns the robot left/right by stepping
+along arcs around the body's center. Its vertical axis is ignored in this mode.
+Turning works in place or together with walking from the left stick.
+`turn_step_angle` sets the yaw stride in degrees at full deflection (10 degrees
+by default); smaller deflections reduce the rotation. Start/stop uses the gait ramp.
+Hold **R1** while moving the right stick to shift the body forward/backward and
+left/right relative to the feet instead. Deflection sets the body position
+directly; releasing the stick or R1 returns the body to center.
+In the simulator, left/right arrows turn; **Shift + arrows** shifts the body.
 `BODY_SHIFT_MAX` sets the maximum translation per axis in millimeters (20 mm
 by default). This translation is added independently of the baseline foot
 offsets and can also be used while walking.
 The hardware right-stick axis indices are `RIGHT_STICK_X_AXIS` and
 `RIGHT_STICK_Y_AXIS` in `robot/config.py` (2 and 3 by default); the browser
 uses the standard gamepad mapping (axes 2 and 3).
+`R1_BUTTON` sets the hardware button index (10, verified on this controller). If your driver uses
+a different mapping, identify R1 using `python -m robot.joystick` and change
+this setting. The browser uses standard gamepad button 5 for R1.
 The "Gait parameters" panel lets you adjust `gait_speed`,
-`step_length`, `step_height`, and `z_height` live.
+`step_length`, `step_height`, `turn_step_angle`, and `z_height` live.
 `z_height` sets a shared baseline.
 The `x_offset_front`, `y_offset_front`, `x_offset_rear`, and `y_offset_rear`
 sliders set the baseline foot coordinates for the front and rear leg pairs (in mm).
@@ -32,7 +41,8 @@ Configuration changes require restarting the server. JavaScript
 only draws the received points and has no IK solver or gait generator of its own.
 
 The body is represented by an approximate solid shape, and the mounting positions
-come from `LEG_ORIGINS`.
+come from `LEG_ORIGINS`. These positions also determine the turning center and
+each foot's rotation radius, so they should match the robot's geometry.
 
 ## Inverse Kinematics
 
@@ -221,8 +231,8 @@ robot program or the simulator server.
 - `tools/`: helper tools.
 - `archive/`: older versions.
 
-The motion state is a plain dictionary with the fields `phase`, `ramp`, and
-`direction`. `step_motion(state, x, y, elapsed)` returns a new state and a frame
+The motion state is a plain dictionary with the fields `phase`, `ramp`,
+`direction`, and `turn`. `step_motion(state, x, y, elapsed, turn=0)` returns a new state and a frame
 without modifying the input dictionary. Importing modules does not open the
 gamepad or a socket. Resources are closed when the program exits. The only
 custom class in the application code is the handler required by the standard

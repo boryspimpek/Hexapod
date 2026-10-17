@@ -14,7 +14,7 @@ class BodyShiftTests(unittest.TestCase):
             baseline = simulate(walking)
             for right_x, right_y in ((-1, 0), (1, 0), (0, 1), (0, -1), (.4, -.7)):
                 with self.subTest(walking=walking, right_x=right_x, right_y=right_y):
-                    frame = simulate({**walking, "right_x": right_x, "right_y": right_y})
+                    frame = simulate({**walking, "right_x": right_x, "right_y": right_y, "r1": True})
                     dx, dy = right_y * cfg.BODY_SHIFT_MAX, -right_x * cfg.BODY_SHIFT_MAX
                     for name, leg in frame["legs"].items():
                         before = baseline["legs"][name]
@@ -49,6 +49,7 @@ class BodyShiftTests(unittest.TestCase):
         frames = []
         with patch.object(main, "get_left_stick", return_value=(0, 0)), \
                 patch.object(main, "get_right_stick", side_effect=[*sticks, KeyboardInterrupt]), \
+                patch.object(main, "get_r1", return_value=True), \
                 patch.object(main, "get_dpad_vertical", return_value=0), \
                 patch.object(main, "send_frame", side_effect=lambda sock, frame: frames.append(frame)), \
                 patch.object(main.time, "sleep"), patch("builtins.print"):
