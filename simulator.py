@@ -16,6 +16,7 @@ from robot import config as cfg
 from robot.kinematics import forward_kinematics
 from robot.servos import apply_offsets, remove_offsets
 from robot.motion import step_motion, JOINT_NAMES
+from robot.body import body_center, pose_point
 
 ASSETS = Path(__file__).resolve().parent / "simulator"
 PARAMETER_SPECS = {
@@ -36,14 +37,17 @@ def parameter_specs():
             for name, spec in PARAMETER_SPECS.items()}
 
 
-def joint_points(name, angles, body_offset=(0, 0, 0)):
+def joint_points(name, angles, body_offset=(0, 0, 0), body_rotation=(0, 0, 0)):
     points = forward_kinematics(angles, cfg.l_coxa, cfg.l_femur, cfg.l_tibia)
-    return [world_point(name, point, body_offset) for point in points]
+    return [world_point(name, point, body_offset, body_rotation) for point in points]
 
 
-def world_point(name, point, body_offset=(0, 0, 0)):
+def world_point(name, point, body_offset=(0, 0, 0), body_rotation=(0, 0, 0)):
     origin = cfg.LEG_ORIGINS[name]
     side = 1 if name.startswith("l") else -1
+    if body_rotation[0] or body_rotation[1]:
+        local = (origin[0] + point[0], origin[1] + side * point[1], origin[2] + point[2])
+        return list(pose_point(local, body_offset, *body_rotation[:2]))
     return [origin[0] + point[0] + body_offset[0],
             origin[1] + side * point[1] + body_offset[1],
             origin[2] + point[2] + body_offset[2]]
@@ -87,17 +91,21 @@ def simulate(data):
                          if "_offset_" not in name or name in data}
     controls = dict(body_x=values["right_y"] * cfg.BODY_SHIFT_MAX if shifting else 0.0,
                     body_y=values["right_x"] * cfg.BODY_SHIFT_MAX if shifting else 0.0,
+                    body_roll=values["y"] * cfg.BODY_TILT_MAX if shifting else 0.0,
+                    body_pitch=values["x"] * cfg.BODY_TILT_MAX if shifting else 0.0,
                     turn=0.0 if shifting else values["right_x"])
+    walk_x, walk_y = (0.0, 0.0) if shifting else (values["x"], values["y"])
     try:
-        state, frame = step_motion(state, values["x"], values["y"], values["elapsed"],
+        state, frame = step_motion(state, walk_x, walk_y, values["elapsed"],
                                    **controls, **motion_parameters)
     except ValueError:
         if parameters["z_height"] == original_height:
             raise
         parameters["z_height"] = motion_parameters["z_height"] = original_height
-        state, frame = step_motion(state, values["x"], values["y"], values["elapsed"],
+        state, frame = step_motion(state, walk_x, walk_y, values["elapsed"],
                                    **controls, **motion_parameters)
     body_offset = frame["body_offset"]
+    body_rotation = frame["body_rotation"]
     for name, leg in frame["legs"].items():
         geometric, limited = [], []
         for joint, raw in zip(JOINT_NAMES, leg["raw_angles"]):
@@ -105,11 +113,21 @@ def simulate(data):
             command = leg["servo_angles"][joint]
             limited.append(abs(command - apply_offsets(spec[cfg.SERVO_ID], raw)) > 1e-8)
             geometric.append(remove_offsets(spec[cfg.SERVO_ID], command))
-        leg["points"] = joint_points(name, geometric, body_offset)
-        leg["target_world"] = world_point(name, leg["target"], body_offset)
+        leg["points"] = joint_points(name, geometric, body_offset, body_rotation)
+        leg["target_world"] = world_point(name, leg["target"], body_offset, body_rotation)
         leg["limited"] = limited
     frame.update(state)
-    frame.update(origins={name: world_point(name, (0, 0, 0), body_offset) for name in cfg.LEGS},
+    dimensions = tuple(max(p[i] for p in cfg.LEG_ORIGINS.values())
+                       - min(p[i] for p in cfg.LEG_ORIGINS.values()) for i in range(2))
+    center = body_center()
+    frame["body"] = {
+        "center": pose_point(center, body_offset, *body_rotation[:2]),
+        "size": (dimensions[0] + 30, dimensions[1], 30),
+        "nose": pose_point((center[0] + dimensions[0] / 2 + 15, center[1], center[2]),
+                           body_offset, *body_rotation[:2]),
+    }
+    frame.update(origins={name: world_point(name, (0, 0, 0), body_offset, body_rotation)
+                         for name in cfg.LEGS},
                  ground=parameters["z_height"], z_height=parameters["z_height"],
                  previous_dpad=dpad)
     return frame

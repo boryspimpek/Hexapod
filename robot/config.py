@@ -73,6 +73,7 @@ LEFT_STICK_Y_AXIS = 1
 RIGHT_STICK_X_AXIS = 2
 RIGHT_STICK_Y_AXIS = 3
 BODY_SHIFT_MAX = 20.0  # mm per axis at full right-stick deflection
+BODY_TILT_MAX = 8.0  # degrees per axis at full left-stick deflection with R1
 turn_step_angle = 10.0  # degrees of yaw per gait cycle at full stick deflection
 HEIGHT_STEP = 5.0  # mm na nacisniecie D-pada
 HEIGHT_LIMITS = (-150.0, -20.0)  # zakres z_height podczas sterowania

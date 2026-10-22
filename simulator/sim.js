@@ -221,14 +221,13 @@ function controls() {
        Number(keys.has("ArrowUp")) - Number(keys.has("ArrowDown"))};
 }
 function drawFrame(frame) {
-  const origins = Object.values(frame.origins);
-  const xs = origins.map(p => p[0]), ys = origins.map(p => p[1]);
-  const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
-  const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
-  body.scale.set(Math.max(...xs) - Math.min(...xs) + 30,
-    Math.max(...ys) - Math.min(...ys), 30);
-  body.position.set(cx, cy, 0);
-  nose.scale.set(12, 30, 18); nose.position.set(Math.max(...xs) + 15, cy, 0);
+  body.scale.set(...frame.body.size);
+  body.position.set(...frame.body.center);
+  // Ry(pitch) Rx(roll), matching the shared Python pose calculation.
+  const [roll, pitch] = frame.body_rotation.map(THREE.MathUtils.degToRad);
+  body.rotation.set(roll, pitch, 0, "YXZ");
+  nose.rotation.copy(body.rotation);
+  nose.scale.set(12, 30, 18); nose.position.set(...frame.body.nose);
   grid.position.z = frame.ground;
   let limitedCount = 0;
   Object.entries(frame.legs).forEach(([name, result]) => {
@@ -249,7 +248,8 @@ function drawFrame(frame) {
   });
   status.className = limitedCount ? "warning" : "";
   status.textContent = `Phase ${frame.phase.toFixed(2)}
-Ramp ${(frame.ramp * 100).toFixed(0)}%`;
+Ramp ${(frame.ramp * 100).toFixed(0)}%
+Roll ${frame.body_rotation[0].toFixed(1)}° · Pitch ${frame.body_rotation[1].toFixed(1)}°`;
 }
 // One request at a time; each tab owns its motion state. Fixed 20 ms robot timestep.
 async function tick() {

@@ -4,6 +4,7 @@ import math
 from .gait import calculate_trajectory, calc_dir
 from .servos import correct_angle
 from .kinematics import inverse_kinematics
+from .body import pose_point
 
 JOINT_NAMES = ("coxa", "femur", "tibia")
 
@@ -12,10 +13,12 @@ def calculate_frame(phase=0.0, ramp=0.0, direction=(0.0, 0.0), *,
                     step_length=None, step_height=None, z_height=None,
                     x_offset_front=None, y_offset_front=None,
                     x_offset_rear=None, y_offset_rear=None,
-                    body_x=0.0, body_y=0.0, turn=0.0, turn_step_angle=None):
+                    body_x=0.0, body_y=0.0, body_roll=0.0, body_pitch=0.0,
+                    turn=0.0, turn_step_angle=None):
     """Body translation in mm: +body_x forward, +body_y right.
 
-    Subtract body translation from foot targets to keep feet planted.
+    Roll/pitch in degrees: positive lowers right/front. Invert the full body
+    pose on foot targets to keep the world foot trajectory unchanged.
     """
     step_length = cfg.step_length if step_length is None else step_length
     step_height = cfg.step_height if step_height is None else step_height
@@ -52,7 +55,16 @@ def calculate_frame(phase=0.0, ramp=0.0, direction=(0.0, 0.0), *,
             x, y = origin[0] + target[0] - center_x, origin[1] + side * target[1] - center_y
             target = (center_x + c * x - s * y - origin[0],
                       side * (center_y + s * x + c * y - origin[1]), target[2])
-        target = (target[0] - body_x, target[1] + side * body_y, target[2])
+        if body_roll or body_pitch:
+            origin = cfg.LEG_ORIGINS[name]
+            world = (origin[0] + target[0], origin[1] + side * target[1],
+                     origin[2] + target[2])
+            local = pose_point(world, (body_x, -body_y, 0), body_roll, body_pitch,
+                               inverse=True)
+            target = (local[0] - origin[0], side * (local[1] - origin[1]),
+                      local[2] - origin[2])
+        else:
+            target = (target[0] - body_x, target[1] + side * body_y, target[2])
         raw = inverse_kinematics(*target, cfg.l_coxa, cfg.l_femur, cfg.l_tibia)
         corrected = {}
         for joint, angle in zip(JOINT_NAMES, raw):
@@ -60,7 +72,8 @@ def calculate_frame(phase=0.0, ramp=0.0, direction=(0.0, 0.0), *,
             corrected[joint] = correct_angle(sid, angle)
             servos[sid] = corrected[joint]
         legs[name] = {"target": target, "raw_angles": raw, "servo_angles": corrected}
-    return {"legs": legs, "servos": servos, "body_offset": (body_x, -body_y, 0.0)}
+    return {"legs": legs, "servos": servos, "body_offset": (body_x, -body_y, 0.0),
+            "body_rotation": (body_roll, body_pitch, 0.0)}
 
 
 def advance_ramp(ramp, running, elapsed):
@@ -83,7 +96,8 @@ def step_motion(state, x, y, elapsed, *, gait_speed=None, step_length=None,
                 step_height=None, z_height=None,
                 x_offset_front=None, y_offset_front=None,
                 x_offset_rear=None, y_offset_rear=None,
-                body_x=0.0, body_y=0.0, turn=0.0, turn_step_angle=None):
+                body_x=0.0, body_y=0.0, body_roll=0.0, body_pitch=0.0,
+                turn=0.0, turn_step_angle=None):
     """Zwraca (nowy stan, klatka), nie modyfikując przekazanego stanu.
 
     Klatka używa bieżącej fazy i nowej rampy; zwrócony stan zawiera
@@ -101,6 +115,7 @@ def step_motion(state, x, y, elapsed, *, gait_speed=None, step_length=None,
                             x_offset_front=x_offset_front, y_offset_front=y_offset_front,
                             x_offset_rear=x_offset_rear, y_offset_rear=y_offset_rear,
                             body_x=body_x, body_y=body_y,
+                            body_roll=body_roll, body_pitch=body_pitch,
                             turn=active_turn, turn_step_angle=turn_step_angle)
     updated = {"phase": next_phase(state["phase"], ramp, elapsed, gait_speed=gait_speed),
                "ramp": ramp, "direction": direction, "turn": active_turn}

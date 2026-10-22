@@ -18,6 +18,7 @@ def main_loop(controller, sock):
     state = initial_state()
     z_height = cfg.z_height
     body_shift = (0.0, 0.0)
+    body_tilt = (0.0, 0.0)
     previous_dpad = 0
     send_frame(sock, calculate_frame())
     last_time = time.monotonic()
@@ -31,8 +32,11 @@ def main_loop(controller, sock):
         requested_shift = ((right_y * cfg.BODY_SHIFT_MAX, right_x * cfg.BODY_SHIFT_MAX)
                            if shifting else (0.0, 0.0))
         turn = 0.0 if shifting else right_x
+        requested_tilt = ((stick_x * cfg.BODY_TILT_MAX, stick_y * cfg.BODY_TILT_MAX)
+                          if shifting else (0.0, 0.0))
         if shifting:
             state = {**state, "turn": 0.0}
+            stick_x = stick_y = 0.0
         dpad = get_dpad_vertical(controller)
         requested_height = z_height
         if dpad and dpad != previous_dpad:
@@ -45,17 +49,22 @@ def main_loop(controller, sock):
             next_state, frame = step_motion(state, stick_y, stick_x, elapsed,
                                             z_height=requested_height,
                                             body_x=requested_shift[0], body_y=requested_shift[1],
+                                            body_roll=requested_tilt[0], body_pitch=requested_tilt[1],
                                             turn=turn)
         except ValueError:
-            if requested_height == z_height and requested_shift == body_shift:
+            if (requested_height == z_height and requested_shift == body_shift
+                    and requested_tilt == body_tilt):
                 raise
             print("Zmiana pozycji korpusu odrzucona: cel poza zasiegiem nogi.")
             next_state, frame = step_motion(state, stick_y, stick_x, elapsed,
                                             z_height=z_height,
-                                            body_x=body_shift[0], body_y=body_shift[1], turn=turn)
+                                            body_x=body_shift[0], body_y=body_shift[1],
+                                            body_roll=body_tilt[0], body_pitch=body_tilt[1], turn=turn)
             requested_height = z_height
             requested_shift = body_shift
+            requested_tilt = body_tilt
         body_shift = requested_shift
+        body_tilt = requested_tilt
         if requested_height != z_height:
             z_height = requested_height
             print(f"z_height: {z_height:.1f} mm")

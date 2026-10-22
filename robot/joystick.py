@@ -44,7 +44,7 @@ def get_right_stick(controller, deadzone=CONTROLLER_DEADZONE):
 
 
 def get_r1(controller):
-    """Read the body-shift modifier after get_left_stick pumps events."""
+    """Read the body-pose modifier after get_left_stick pumps events."""
     return controller.get_numbuttons() > R1_BUTTON and bool(controller.get_button(R1_BUTTON))
 
 

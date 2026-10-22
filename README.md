@@ -23,6 +23,16 @@ Hold **R1** while moving the right stick to shift the body forward/backward and
 left/right relative to the feet instead. Deflection sets the body position
 directly; releasing the stick or R1 returns the body to center.
 In the simulator, left/right arrows turn; **Shift + arrows** shifts the body.
+Hold **R1 + left stick** to tilt the body: right lowers its right side (roll),
+forward lowers its front (pitch). Deflection sets the angle directly, up to
+`BODY_TILT_MAX` degrees per axis (default 8°). Releasing the stick or R1 levels
+the body. In the simulator use **Shift + WASD**. While R1 is held, the left stick
+controls tilt instead of walking; an existing gait ramps down. Both sticks can
+be used together to combine tilt and body translation. The inverse body pose
+compensates all three foot coordinates, keeping stationary foot targets fixed
+on the ground. During gait ramp-down, feet finish their gait motion.
+The simulator shows servo-limit clipping in orange; fixed foot targets are
+achieved by the physical legs only within their mechanical and servo limits.
 D-pad up/down (or up/down arrows without Shift in the simulator) changes
 `z_height` by `HEIGHT_STEP` per press within `HEIGHT_LIMITS`, like on the robot.
 Holding a direction does not repeat the change; release and press again.

@@ -10,7 +10,7 @@ from simulator import simulate
 
 class BodyShiftTests(unittest.TestCase):
     def test_body_moves_while_world_foot_trajectory_stays_fixed(self):
-        for walking in ({}, {"x": .6, "y": .8, "ramp": 1, "phase": .125}):
+        for walking in ({}, {"direction": (.6, .8), "ramp": 1, "phase": .125}):
             baseline = simulate(walking)
             for right_x, right_y in ((-1, 0), (1, 0), (0, 1), (0, -1), (.4, -.7)):
                 with self.subTest(walking=walking, right_x=right_x, right_y=right_y):
