@@ -33,6 +33,19 @@ compensates all three foot coordinates, keeping stationary foot targets fixed
 on the ground. During gait ramp-down, feet finish their gait motion.
 The simulator shows servo-limit clipping in orange; fixed foot targets are
 achieved by the physical legs only within their mechanical and servo limits.
+
+The simulator also tracks the robot's position and heading on the ground.
+Consecutive targets of legs in stance determine a planar translation and
+rotation, so walking moves the robot across the grid and turning changes its
+heading. Subsequent joystick directions follow the robot's current heading.
+Each new support pair establishes fresh ground contacts. This is kinematic
+odometry based on commanded targets; it does not model friction, slipping,
+collisions, or balance, and servo clipping can make the displayed feet diverge
+from their targets. Body shifts and tilts under R1 retain the ground targets.
+**Follow robot** toggles camera tracking while preserving camera rotation,
+zoom, and pan. **Reset position** returns the robot's world position and heading
+to their starting values. Each browser tab has its own travel state; reloading
+the page resets it. This visualization does not change physical robot commands.
 D-pad up/down (or up/down arrows without Shift in the simulator) changes
 `z_height` by `HEIGHT_STEP` per press within `HEIGHT_LIMITS`, like on the robot.
 Holding a direction does not repeat the change; release and press again.

@@ -17,6 +17,7 @@ from robot.kinematics import forward_kinematics
 from robot.servos import apply_offsets, remove_offsets
 from robot.motion import step_motion, JOINT_NAMES
 from robot.body import body_center, pose_point
+from robot.odometry import read_odometry, advance_odometry
 
 ASSETS = Path(__file__).resolve().parent / "simulator"
 PARAMETER_SPECS = {
@@ -54,6 +55,7 @@ def world_point(name, point, body_offset=(0, 0, 0), body_rotation=(0, 0, 0)):
 
 
 def simulate(data):
+    odometry = read_odometry(data.get("odometry"))
     parameters = {name: float(data.get(name, getattr(cfg, name)))
                   for name in PARAMETER_SPECS}
     for name, value in parameters.items():
@@ -130,6 +132,11 @@ def simulate(data):
                          for name in cfg.LEGS},
                  ground=parameters["z_height"], z_height=parameters["z_height"],
                  previous_dpad=dpad)
+    frame["reference_center"] = center
+    frame["odometry"] = advance_odometry(
+        odometry, {name: leg["target_world"] for name, leg in frame["legs"].items()},
+        values["phase"], moving=(parameters["gait_speed"] > 0
+                                and (values["ramp"] > 0 or frame["ramp"] > 0)))
     return frame
 
 

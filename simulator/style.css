@@ -194,6 +194,20 @@ input[type="range"] {
   accent-color: var(--accent);
 }
 
+#reset-position {
+  margin-top: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--background);
+  color: var(--text);
+  cursor: pointer;
+}
+
+#reset-position:hover, #reset-position:focus-visible {
+  border-color: var(--accent);
+}
+
 table {
   width: 100%;
   border-collapse: collapse;

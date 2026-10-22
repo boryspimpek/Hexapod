@@ -17,9 +17,15 @@ const sun = new THREE.DirectionalLight(0xffffff, 0.8);
 sun.position.set(200, -300, 500);
 scene.add(sun);
 
-const grid = new THREE.GridHelper(1200, 24, 0x35d0ba, 0x262d38);
+const robotRoot = new THREE.Group();
+const robotModel = new THREE.Group();
+robotRoot.add(robotModel);
+scene.add(robotRoot);
+const grid = new THREE.GridHelper(4000, 80, 0x262d38, 0x262d38);
 grid.rotation.x = Math.PI / 2;
 scene.add(grid);
+const originMarker = new THREE.AxesHelper(100);
+scene.add(originMarker);
 
 const bodyMaterial = new THREE.MeshStandardMaterial({
   color: 0x2b3441,
@@ -31,7 +37,7 @@ const nose = new THREE.Mesh(
   new THREE.BoxGeometry(1, 1, 1),
   new THREE.MeshStandardMaterial({ color: 0x35d0ba }),
 );
-scene.add(body, nose);
+robotModel.add(body, nose);
 
 const limbMaterials = [0x8fa3bd, 0x5f7794, 0xb9c6d8].map(
   (color) =>
@@ -52,18 +58,18 @@ const unreachableFootMaterial = new THREE.MeshStandardMaterial({
 Object.values(LEGS).forEach((leg) => {
   leg.segments = limbMaterials.map((material) => {
     const segment = new THREE.Mesh(segmentGeometry, material);
-    scene.add(segment);
+    robotModel.add(segment);
     return segment;
   });
   leg.joints = [0, 1, 2].map(() => {
     const joint = new THREE.Mesh(jointGeometry, jointMaterial);
     joint.scale.setScalar(7);
-    scene.add(joint);
+    robotModel.add(joint);
     return joint;
   });
   leg.footMesh = new THREE.Mesh(jointGeometry, footMaterial);
   leg.footMesh.scale.setScalar(9);
-  scene.add(leg.footMesh);
+  robotModel.add(leg.footMesh);
 });
 
 const worldUp = new THREE.Vector3(0, 1, 0);
@@ -185,6 +191,19 @@ async function loadParameters() {
   }
 }
 let state = {phase: 0, ramp: 0, direction: [0, 0], turn: 0, previous_dpad: 0};
+let resetVersion = 0;
+let previousWorldPosition = null;
+const followCamera = document.getElementById("follow-camera");
+document.getElementById("reset-position").addEventListener("click", () => {
+  resetVersion++;
+  delete state.odometry;
+  previousWorldPosition = null;
+});
+followCamera.addEventListener("change", () => {
+  if (followCamera.checked && previousWorldPosition) {
+    cameraTarget.set(...previousWorldPosition, -40);
+  }
+});
 Object.values(LEGS).forEach(leg => {
   const row = document.createElement("tr");
   row.innerHTML = `<td>${leg.n.toUpperCase()}</td><td></td><td></td><td></td>`;
@@ -192,7 +211,7 @@ Object.values(LEGS).forEach(leg => {
   leg.tableRow = row;
   leg.target = new THREE.Mesh(new THREE.SphereGeometry(11, 12, 8),
     new THREE.MeshBasicMaterial({color: 0x35d0ba, wireframe: true}));
-  scene.add(leg.target);
+  robotModel.add(leg.target);
 });
 addEventListener("keydown", e => {
   if (["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "ShiftLeft", "ShiftRight"]
@@ -221,6 +240,24 @@ function controls() {
        Number(keys.has("ArrowUp")) - Number(keys.has("ArrowDown"))};
 }
 function drawFrame(frame) {
+  const {position, yaw} = frame.odometry;
+  const [cx, cy, cz] = frame.reference_center;
+  robotModel.position.set(-cx, -cy, -cz);
+  robotRoot.position.set(...position, cz);
+  robotRoot.rotation.z = yaw;
+  if (followCamera.checked) {
+    if (previousWorldPosition) {
+      cameraTarget.x += position[0] - previousWorldPosition[0];
+      cameraTarget.y += position[1] - previousWorldPosition[1];
+    } else {
+      cameraTarget.set(...position, -40);
+    }
+  }
+  previousWorldPosition = [...position];
+  // Snap by whole cells: the lattice stays fixed as the visible patch follows.
+  grid.position.x = Math.round(position[0] / 50) * 50;
+  grid.position.y = Math.round(position[1] / 50) * 50;
+  originMarker.position.z = frame.ground;
   body.scale.set(...frame.body.size);
   body.position.set(...frame.body.center);
   // Ry(pitch) Rx(roll), matching the shared Python pose calculation.
@@ -250,10 +287,13 @@ function drawFrame(frame) {
   status.textContent = `Phase ${frame.phase.toFixed(2)}
 Ramp ${(frame.ramp * 100).toFixed(0)}%
 Roll ${frame.body_rotation[0].toFixed(1)}° · Pitch ${frame.body_rotation[1].toFixed(1)}°`;
+  status.textContent += `\nX ${(position[0] - cx).toFixed(0)} mm · Y ${(position[1] - cy).toFixed(0)} mm
+Heading ${THREE.MathUtils.radToDeg(yaw).toFixed(1)}°`;
 }
 // One request at a time; each tab owns its motion state. Fixed 20 ms robot timestep.
 async function tick() {
   const started = performance.now();
+  const requestVersion = resetVersion;
   try {
     const response = await fetch("/api/frame", {method: "POST",
       headers: {"Content-Type": "application/json"},
@@ -261,7 +301,9 @@ async function tick() {
       signal: AbortSignal.timeout(3000)});
     const frame = await response.json();
     if (!response.ok) throw new Error(frame.error || `HTTP ${response.status}`);
-    state = {phase: frame.phase, ramp: frame.ramp, direction: frame.direction, turn: frame.turn,
+    if (requestVersion !== resetVersion) return;
+    state = {odometry: frame.odometry,
+             phase: frame.phase, ramp: frame.ramp, direction: frame.direction, turn: frame.turn,
              previous_dpad: frame.previous_dpad};
     // Keep the slider and its label in sync with D-pad/keyboard height changes.
     if (frame.z_height !== parameters.z_height) {
@@ -273,8 +315,9 @@ async function tick() {
   } catch (error) {
     keys.clear(); status.className = "warning";
     status.textContent = `Simulation error: ${error.message}`;
+  } finally {
+    setTimeout(tick, Math.max(0, 20 - (performance.now() - started)));
   }
-  setTimeout(tick, Math.max(0, 20 - (performance.now() - started)));
 }
 function animate() {
   camera.position.set(cameraTarget.x + cameraDistance * Math.cos(elevation) * Math.cos(azimuth),
