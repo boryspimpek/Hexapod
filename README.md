@@ -115,7 +115,13 @@ The COXA angle is calculated first, shown as `θ1` in the
 [top view](media/top_view_1.png). The `atan2(x, y)` function determines the angle
 of the foot position relative to the `+Y` axis using the target coordinates.
 Since the servo takes an angle measured from its own zero position, the
-`COXA_ZERO` offset (90° by default) is added to the result.
+`COXA_ZERO` offset (90° by default) is added to the result, and the mounting
+angle from `robot/config.py` (`COXA_MOUNT_ANGLES`) is subtracted. Front mounts
+point 45° forward and rear mounts 45° backward from the outward direction.
+Forward kinematics adds this mounting angle back when drawing the leg.
+Foot targets and gait directions remain in body-aligned axes (+X forward,
+local +Y outward), so the same foot position now requires a different servo
+angle. This configuration is shared by the simulator and hardware control.
 
 #### Maximum Reach
 

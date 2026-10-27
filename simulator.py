@@ -39,7 +39,8 @@ def parameter_specs():
 
 
 def joint_points(name, angles, body_offset=(0, 0, 0), body_rotation=(0, 0, 0)):
-    points = forward_kinematics(angles, cfg.l_coxa, cfg.l_femur, cfg.l_tibia)
+    points = forward_kinematics(angles, cfg.l_coxa, cfg.l_femur, cfg.l_tibia,
+                                mount_angle=cfg.COXA_MOUNT_ANGLES[name])
     return [world_point(name, point, body_offset, body_rotation) for point in points]
 
 

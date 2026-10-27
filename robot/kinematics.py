@@ -12,10 +12,12 @@ import math
 
 from .config import COXA_ZERO, TIBIA_OFFSET
 
-def inverse_kinematics(x, y, z, l_coxa, l_femur, l_tibia):
+def inverse_kinematics(x, y, z, l_coxa, l_femur, l_tibia, *, mount_angle=0.0):
     """
     Oblicza kąty (w stopniach) stawów Coxa, Femur, Tibia dla zadanej
     pozycji stopy (x, y, z) względem stawu Coxa.
+    Osie celu są równoległe do korpusu, +Y na zewnątrz nogi.
+    mount_angle to obrót mocowania od +Y w stronę +X, w stopniach.
 
     Zwraca:
         (theta_coxa_deg, theta_femur_deg, theta_tibia_deg)
@@ -52,7 +54,7 @@ def inverse_kinematics(x, y, z, l_coxa, l_femur, l_tibia):
         #### COXA: ####
         # IK zwraca kąty np + 20, -20 w lewo i w prawo od osi y, dodajemy COXA_ZERO (90 stopni),
         # aby kąt był liczony od zera, a nie od osi y, ponieważ takich wartości spodziewają się serwa
-        COXA_ZERO + math.degrees(theta_coxa_rad),
+        COXA_ZERO + math.degrees(theta_coxa_rad) - mount_angle,
 
         #### FEMUR: ####
         math.degrees(theta_femur_rad),
@@ -64,9 +66,9 @@ def inverse_kinematics(x, y, z, l_coxa, l_femur, l_tibia):
         # ponieważ serwo zamontowane jest tak, że orczyk jest sztywny, a obraca się serwo.
         180 - (math.degrees(theta_tibia_rad) - TIBIA_OFFSET))
 
-def forward_kinematics(angles, l_coxa, l_femur, l_tibia):
-    """Punkty stawów w lokalnym układzie nogi, w konwencji IK."""
-    coxa = math.radians(angles[0] - COXA_ZERO)
+def forward_kinematics(angles, l_coxa, l_femur, l_tibia, *, mount_angle=0.0):
+    """Punkty stawów w osiach celu IK, z obrotem mocowania w stopniach."""
+    coxa = math.radians(angles[0] - COXA_ZERO + mount_angle)
     femur, tibia = map(math.radians, angles[1:])
     radial = (math.sin(coxa), math.cos(coxa))
     knee_direction = femur - tibia + math.radians(TIBIA_OFFSET)

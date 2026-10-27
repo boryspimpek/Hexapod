@@ -28,7 +28,8 @@ class BodyTiltTests(unittest.TestCase):
                                                     tilted["body_offset"], tilted["body_rotation"]),
                                                     expected)
                             foot = forward_kinematics(leg["raw_angles"], cfg.l_coxa,
-                                                      cfg.l_femur, cfg.l_tibia)[-1]
+                                                      cfg.l_femur, cfg.l_tibia,
+                                                      mount_angle=cfg.COXA_MOUNT_ANGLES[name])[-1]
                             self.assert_point_equal(world_point(name, foot, tilted["body_offset"],
                                                                 tilted["body_rotation"]), expected)
 

@@ -2,8 +2,8 @@
 
 l_coxa, l_femur, l_tibia = 43.73, 100.0, 149.10
 
-gait_speed = 1.5  # ile "cykli chodu" na sekundę — to jest "prędkość"
-step_length = 40.0  # długość kroku w mm
+gait_speed = 1.0  # ile "cykli chodu" na sekundę — to jest "prędkość"
+step_length = 80.0  # długość kroku w mm
 step_height = 40.0  # wysokość unoszenia stopy w mm
 ramp_time = 0.5  # czas narastania/zanikania prędkości chodu w sekundach
 stick_deadzone = 0.1  # strefa martwa joystika
@@ -11,9 +11,9 @@ stick_deadzone = 0.1  # strefa martwa joystika
 # Pozycja startowa stopy [mm] (x, y, z) w układzie współrzędnych danej nogi
 
 z_height = -40
-x_offset_front = 0
+x_offset_front = 110
 y_offset_front = 160
-x_offset_rear = 0
+x_offset_rear = -110
 y_offset_rear = 160
 p_start = {
     'lf': (x_offset_front, y_offset_front, z_height),
@@ -63,6 +63,10 @@ LEG_ORIGINS = {
     "lr": (0, 30, 0),
     "rr": (0, -30, 0),
 }
+# Obrót mocowania coxa od lokalnej osi +Y (na zewnątrz) w stronę +X.
+# Przód: +45° do przodu; tył: -45° do tyłu, tak samo po obu stronach.
+COXA_MOUNT_ANGLES = {"lf": 45.0, "rf": 45.0, "lr": -45.0, "rr": -45.0}
+
 # Komunikacja i wybór aktywnych serw.
 ESP = ("192.168.0.115", 8888)
 ACTIVE_SERVO_IDS = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}

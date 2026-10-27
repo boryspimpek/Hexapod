@@ -65,7 +65,8 @@ def calculate_frame(phase=0.0, ramp=0.0, direction=(0.0, 0.0), *,
                       local[2] - origin[2])
         else:
             target = (target[0] - body_x, target[1] + side * body_y, target[2])
-        raw = inverse_kinematics(*target, cfg.l_coxa, cfg.l_femur, cfg.l_tibia)
+        raw = inverse_kinematics(*target, cfg.l_coxa, cfg.l_femur, cfg.l_tibia,
+                                 mount_angle=cfg.COXA_MOUNT_ANGLES[name])
         corrected = {}
         for joint, angle in zip(JOINT_NAMES, raw):
             sid = joints[joint][cfg.SERVO_ID]
