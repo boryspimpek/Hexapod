@@ -70,6 +70,7 @@ class TurningTests(unittest.TestCase):
         with patch.object(main, "get_left_stick", return_value=(0, 0)), \
                 patch.object(main, "get_right_stick", side_effect=[(-1, .8), (.5, .5), (0, 1), KeyboardInterrupt]), \
                 patch.object(main, "get_r1", side_effect=[False, True, False]), \
+                patch.object(main, "get_gait_button", return_value=False), \
                 patch.object(main, "get_dpad_vertical", return_value=0), \
                 patch.object(main.time, "monotonic", side_effect=[0, .02, .04, .06, .08]), \
                 patch.object(main.time, "sleep"), patch("builtins.print"), \

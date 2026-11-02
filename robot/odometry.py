@@ -7,6 +7,7 @@ import math
 
 from . import config as cfg
 from .body import body_center
+from .gait import gait_settings
 
 
 def read_odometry(value):
@@ -30,16 +31,17 @@ def read_odometry(value):
             "contacts": {name: list(point) for name, point in contacts.items()}}
 
 
-def advance_odometry(previous, feet, phase, *, moving=True):
+def advance_odometry(previous, feet, phase, *, moving=True, gait=None):
     """Fit the SE(2) transform that holds shared support targets still.
 
     At support exchange there are no shared anchors: preserve the pose and
     establish the newly landed pair. Servo clipping is deliberately excluded.
     """
     center = body_center()
+    settings = gait_settings(gait)
     contacts = {name: [point[0] - center[0], point[1] - center[1]]
                 for name, point in feet.items()
-                if (phase + cfg.LEG_PHASE_OFFSET[name]) % 1.0 >= .5}
+                if (phase + settings["phase_offsets"][name]) % 1.0 >= settings["swing_ratio"]}
     shared = sorted(contacts.keys() & previous["contacts"].keys())
     position, yaw = list(previous["position"]), previous["yaw"]
     if shared and moving:

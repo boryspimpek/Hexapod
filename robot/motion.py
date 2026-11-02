@@ -1,7 +1,7 @@
 """Shared robot frame calculations; no controller or hardware side effects."""
 from . import config as cfg
 import math
-from .gait import calculate_trajectory, calc_dir
+from .gait import calculate_trajectory, calc_dir, gait_settings, stride_progress
 from .servos import correct_angle
 from .kinematics import inverse_kinematics
 from .body import pose_point
@@ -14,12 +14,15 @@ def calculate_frame(phase=0.0, ramp=0.0, direction=(0.0, 0.0), *,
                     x_offset_front=None, y_offset_front=None,
                     x_offset_rear=None, y_offset_rear=None,
                     body_x=0.0, body_y=0.0, body_roll=0.0, body_pitch=0.0,
-                    turn=0.0, turn_step_angle=None):
+                    turn=0.0, turn_step_angle=None, gait=None):
     """Body translation in mm: +body_x forward, +body_y right.
 
     Roll/pitch in degrees: positive lowers right/front. Invert the full body
     pose on foot targets to keep the world foot trajectory unchanged.
     """
+    gait = cfg.DEFAULT_GAIT if gait is None else gait
+    settings = gait_settings(gait)
+    swing_ratio = settings["swing_ratio"]
     step_length = cfg.step_length if step_length is None else step_length
     step_height = cfg.step_height if step_height is None else step_height
     z_height = cfg.z_height if z_height is None else z_height
@@ -40,15 +43,15 @@ def calculate_frame(phase=0.0, ramp=0.0, direction=(0.0, 0.0), *,
         # Input direction: forward/right. Local +Y points outward on each leg.
         local_direction = (direction[0],
                            -direction[1] if name.startswith("l") else direction[1])
-        leg_phase = (phase + cfg.LEG_PHASE_OFFSET[name]) % 1.0
+        leg_phase = (phase + settings["phase_offsets"][name]) % 1.0
         target = calculate_trajectory(
             leg_phase,
             step_length * ramp, step_height * ramp,
-            start, *local_direction,
+            start, *local_direction, swing_ratio=swing_ratio,
         )
         if turn:
             # Swing follows the turn; stance pushes in the opposite direction.
-            progress = 2 * leg_phase - .5 if leg_phase < .5 else 1.5 - 2 * leg_phase
+            progress = stride_progress(leg_phase, swing_ratio) - .5
             angle = -math.radians(turn_step_angle) * turn * ramp * progress
             c, s = math.cos(angle), math.sin(angle)
             origin = cfg.LEG_ORIGINS[name]
@@ -74,7 +77,8 @@ def calculate_frame(phase=0.0, ramp=0.0, direction=(0.0, 0.0), *,
             servos[sid] = corrected[joint]
         legs[name] = {"target": target, "raw_angles": raw, "servo_angles": corrected}
     return {"legs": legs, "servos": servos, "body_offset": (body_x, -body_y, 0.0),
-            "body_rotation": (body_roll, body_pitch, 0.0)}
+            "body_rotation": (body_roll, body_pitch, 0.0),
+            "gait": gait, "sample_phase": phase}
 
 
 def advance_ramp(ramp, running, elapsed):
@@ -90,7 +94,9 @@ def next_phase(phase, ramp, elapsed, *, gait_speed=None):
 
 def initial_state():
     """Nowy, niezależny stan ruchu."""
-    return {"phase": 0.0, "ramp": 0.0, "direction": (0.0, 0.0), "turn": 0.0}
+    gait_settings()
+    return {"phase": 0.0, "ramp": 0.0, "direction": (0.0, 0.0), "turn": 0.0,
+            "gait": cfg.DEFAULT_GAIT, "requested_gait": cfg.DEFAULT_GAIT}
 
 
 def step_motion(state, x, y, elapsed, *, gait_speed=None, step_length=None,
@@ -98,26 +104,38 @@ def step_motion(state, x, y, elapsed, *, gait_speed=None, step_length=None,
                 x_offset_front=None, y_offset_front=None,
                 x_offset_rear=None, y_offset_rear=None,
                 body_x=0.0, body_y=0.0, body_roll=0.0, body_pitch=0.0,
-                turn=0.0, turn_step_angle=None):
+                turn=0.0, turn_step_angle=None, gait=None):
     """Zwraca (nowy stan, klatka), nie modyfikując przekazanego stanu.
 
     Klatka używa bieżącej fazy i nowej rampy; zwrócony stan zawiera
     fazę następnego kroku. Przy hamowaniu zachowujemy ostatni kierunek.
     """
+    active_gait = state.get("gait", cfg.DEFAULT_GAIT)
+    requested_gait = state.get("requested_gait", active_gait) if gait is None else gait
+    gait_settings(active_gait)
+    gait_settings(requested_gait)
+    switching = active_gait != requested_gait
+    phase = state["phase"]
     translating = math.hypot(x, y) > cfg.stick_deadzone
     turning = abs(turn) > cfg.stick_deadzone
     running = translating or turning
+    if switching:
+        running = translating = turning = False
     direction = calc_dir(x, y) if translating else ((0.0, 0.0) if running else tuple(state["direction"]))
     active_turn = turn if turning else (0.0 if running else state.get("turn", 0.0))
     ramp = advance_ramp(state["ramp"], running, elapsed)
-    frame = calculate_frame(state["phase"], ramp, direction,
+    if switching and ramp == 0:
+        active_gait = requested_gait
+        phase = 0.0
+    frame = calculate_frame(phase, ramp, direction,
                             step_length=step_length, step_height=step_height,
                             z_height=z_height,
                             x_offset_front=x_offset_front, y_offset_front=y_offset_front,
                             x_offset_rear=x_offset_rear, y_offset_rear=y_offset_rear,
                             body_x=body_x, body_y=body_y,
                             body_roll=body_roll, body_pitch=body_pitch,
-                            turn=active_turn, turn_step_angle=turn_step_angle)
-    updated = {"phase": next_phase(state["phase"], ramp, elapsed, gait_speed=gait_speed),
-               "ramp": ramp, "direction": direction, "turn": active_turn}
+                            turn=active_turn, turn_step_angle=turn_step_angle, gait=active_gait)
+    updated = {"phase": next_phase(phase, ramp, elapsed, gait_speed=gait_speed),
+               "ramp": ramp, "direction": direction, "turn": active_turn,
+               "gait": active_gait, "requested_gait": requested_gait}
     return updated, frame

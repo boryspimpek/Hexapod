@@ -46,6 +46,43 @@ from their targets. Body shifts and tilts under R1 retain the ground targets.
 zoom, and pan. **Reset position** returns the robot's world position and heading
 to their starting values. Each browser tab has its own travel state; reloading
 the page resets it. This visualization does not change physical robot commands.
+
+### Choosing a gait
+
+`robot/config.py` defines named profiles in `GAITS`:
+
+- `trot`: diagonal pairs, each leg in swing for half the cycle.
+- `crawl`: one leg at a time, in the order LF → LR → RF → RR, with swing
+  lasting one quarter of the cycle and stance lasting three quarters.
+
+Set `DEFAULT_GAIT = "crawl"` to start with crawl, or `"trot"` for trot.
+Each profile has `swing_ratio` (strictly between 0 and 1) and `phase_offsets`
+for all four legs (values from 0 inclusive to 1 exclusive). Local phase is
+`(phase + offset) % 1`; it is in swing when below `swing_ratio`.
+Offsets spaced by 0.25 and `swing_ratio <= 0.25` avoid overlapping leg lifts.
+`LEG_PHASE_OFFSET` is retained as the phase-offset table for the trot profile.
+Walking, turning, and simulator support detection all use the selected profile.
+
+Press **PS4 X (cross)** to cycle through `GAIT_CYCLE = ("trot", "crawl")`.
+Holding the button does not repeat. `GAIT_BUTTON = 0` sets its pygame index;
+verify it on your controller using `python -m robot.joystick` and adjust if needed.
+The console prints the requested gait. Switching during motion first ramps the
+old gait down to the configured resting pose, then changes phases and ramps the
+new gait up if the stick is still deflected. This uses the existing `ramp_time`.
+The selection lasts for the current session; it does not edit the config file.
+
+In the simulator use the **Gait** selector, keyboard **X**, or the pad's bottom
+face button (standard browser button 0: PS4 cross / Xbox A). The status shows
+the active gait and, while switching, the requested gait. Browser gamepad indices
+use the standard mapping independently of the pygame configuration.
+Three feet on the ground do not guarantee balance; the simulator shows
+kinematics without modeling the center of mass or stability.
+
+With `step_length = 0`, the legs lift without forward travel. Set a positive
+stride in the config or simulator to test walking.
+
+### Height and live parameters
+
 D-pad up/down (or up/down arrows without Shift in the simulator) changes
 `z_height` by `HEIGHT_STEP` per press within `HEIGHT_LIMITS`, like on the robot.
 Holding a direction does not repeat the change; release and press again.
@@ -265,7 +302,8 @@ robot program or the simulator server.
 - `archive/`: older versions.
 
 The motion state is a plain dictionary with the fields `phase`, `ramp`,
-`direction`, and `turn`. `step_motion(state, x, y, elapsed, turn=0)` returns a new state and a frame
+`direction`, `turn`, `gait`, and `requested_gait`.
+`step_motion(state, x, y, elapsed, turn=0, gait=None)` returns a new state and a frame
 without modifying the input dictionary. Importing modules does not open the
 gamepad or a socket. Resources are closed when the program exits. The only
 custom class in the application code is the handler required by the standard

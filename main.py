@@ -2,7 +2,8 @@
 import time
 from robot import config as cfg
 from robot.joystick import (open_controller, get_left_stick, get_right_stick,
-                            get_dpad_vertical, get_r1, close_controller)
+                            get_dpad_vertical, get_r1, get_gait_button, close_controller)
+from robot.gait import next_gait
 from robot.motion import calculate_frame, initial_state, step_motion
 from robot.transport import open_socket, send_servos
 
@@ -20,6 +21,7 @@ def main_loop(controller, sock):
     body_shift = (0.0, 0.0)
     body_tilt = (0.0, 0.0)
     previous_dpad = 0
+    previous_gait_button = False
     send_frame(sock, calculate_frame())
     last_time = time.monotonic()
     while True:
@@ -27,6 +29,11 @@ def main_loop(controller, sock):
         elapsed = current_time - last_time
         last_time = current_time
         stick_x, stick_y = get_left_stick(controller)
+        gait_button = get_gait_button(controller)
+        if gait_button and not previous_gait_button:
+            state = {**state, "requested_gait": next_gait(state["requested_gait"])}
+            print(f"Wybrano gait: {state['requested_gait']}")
+        previous_gait_button = gait_button
         right_x, right_y = get_right_stick(controller)
         shifting = get_r1(controller)
         requested_shift = ((right_y * cfg.BODY_SHIFT_MAX, right_x * cfg.BODY_SHIFT_MAX)

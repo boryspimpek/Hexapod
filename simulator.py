@@ -18,6 +18,7 @@ from robot.servos import apply_offsets, remove_offsets
 from robot.motion import step_motion, JOINT_NAMES
 from robot.body import body_center, pose_point
 from robot.odometry import read_odometry, advance_odometry
+from robot.gait import gait_settings, next_gait
 
 ASSETS = Path(__file__).resolve().parent / "simulator"
 PARAMETER_SPECS = {
@@ -56,6 +57,16 @@ def world_point(name, point, body_offset=(0, 0, 0), body_rotation=(0, 0, 0)):
 
 
 def simulate(data):
+    active_gait = data.get("gait", cfg.DEFAULT_GAIT)
+    requested_gait = data.get("requested_gait", active_gait)
+    gait_settings(active_gait)
+    gait_settings(requested_gait)
+    gait_button = data.get("gait_button", False)
+    previous_gait_button = data.get("previous_gait_button", False)
+    if type(gait_button) is not bool or type(previous_gait_button) is not bool:
+        raise ValueError("gait_button: oczekiwano true/false")
+    if gait_button and not previous_gait_button:
+        requested_gait = next_gait(requested_gait)
     odometry = read_odometry(data.get("odometry"))
     parameters = {name: float(data.get(name, getattr(cfg, name)))
                   for name in PARAMETER_SPECS}
@@ -88,7 +99,8 @@ def simulate(data):
         lo, hi = cfg.HEIGHT_LIMITS
         parameters["z_height"] = max(lo, min(hi, original_height - dpad * cfg.HEIGHT_STEP))
     state = {"phase": values["phase"], "ramp": values["ramp"], "direction": direction,
-             "turn": 0.0 if shifting else values["turn"]}
+             "turn": 0.0 if shifting else values["turn"],
+             "gait": active_gait, "requested_gait": requested_gait}
     # Omitted XY overrides retain each leg's configured starting position.
     motion_parameters = {name: value for name, value in parameters.items()
                          if "_offset_" not in name or name in data}
@@ -132,17 +144,21 @@ def simulate(data):
     frame.update(origins={name: world_point(name, (0, 0, 0), body_offset, body_rotation)
                          for name in cfg.LEGS},
                  ground=parameters["z_height"], z_height=parameters["z_height"],
-                 previous_dpad=dpad)
+                 previous_dpad=dpad, previous_gait_button=gait_button)
     frame["reference_center"] = center
     frame["odometry"] = advance_odometry(
         odometry, {name: leg["target_world"] for name, leg in frame["legs"].items()},
-        values["phase"], moving=(parameters["gait_speed"] > 0
+        frame["sample_phase"], gait=frame["gait"], moving=(parameters["gait_speed"] > 0
                                 and (values["ramp"] > 0 or frame["ramp"] > 0)))
     return frame
 
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path == "/api/gaits":
+            self.respond(200, json.dumps({"names": list(cfg.GAITS),
+                                         "default": cfg.DEFAULT_GAIT}).encode(), "application/json")
+            return
         if self.path == "/api/parameters":
             self.respond(200, json.dumps(parameter_specs()).encode(), "application/json")
             return

@@ -58,6 +58,7 @@ class BodyTiltTests(unittest.TestCase):
         with patch.object(main, "get_left_stick", side_effect=[(y, x) for x, y, _ in inputs] + [KeyboardInterrupt]), \
                 patch.object(main, "get_right_stick", return_value=(.3, -.4)), \
                 patch.object(main, "get_r1", side_effect=[r1 for _, _, r1 in inputs]), \
+                patch.object(main, "get_gait_button", return_value=False), \
                 patch.object(main, "get_dpad_vertical", return_value=0), \
                 patch.object(main.time, "monotonic", side_effect=[i * .02 for i in range(6)]), \
                 patch.object(main.time, "sleep"), patch("builtins.print"), \
@@ -92,6 +93,7 @@ class BodyTiltTests(unittest.TestCase):
                 patch.object(main, "get_left_stick", side_effect=[(.5, 0), (1, 0), (0, 0), KeyboardInterrupt]), \
                 patch.object(main, "get_right_stick", return_value=(0, 0)), \
                 patch.object(main, "get_r1", return_value=True), \
+                patch.object(main, "get_gait_button", return_value=False), \
                 patch.object(main, "get_dpad_vertical", return_value=0), \
                 patch.object(main.time, "sleep"), patch("builtins.print"), \
                 patch.object(main, "send_frame", side_effect=lambda sock, frame: frames.append(frame)):

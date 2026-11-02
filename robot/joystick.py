@@ -2,7 +2,7 @@
 import math
 from .config import (CONTROLLER_DEADZONE, DPAD_UP_BUTTON, DPAD_DOWN_BUTTON,
                      LEFT_STICK_X_AXIS, LEFT_STICK_Y_AXIS,
-                     RIGHT_STICK_X_AXIS, RIGHT_STICK_Y_AXIS, R1_BUTTON)
+                     RIGHT_STICK_X_AXIS, RIGHT_STICK_Y_AXIS, R1_BUTTON, GAIT_BUTTON)
 
 
 def open_controller(joystick_index=0):
@@ -46,6 +46,11 @@ def get_right_stick(controller, deadzone=CONTROLLER_DEADZONE):
 def get_r1(controller):
     """Read the body-pose modifier after get_left_stick pumps events."""
     return controller.get_numbuttons() > R1_BUTTON and bool(controller.get_button(R1_BUTTON))
+
+
+def get_gait_button(controller):
+    """X / krzyżyk; wywołuj po get_left_stick (event.pump)."""
+    return 0 <= GAIT_BUTTON < controller.get_numbuttons() and bool(controller.get_button(GAIT_BUTTON))
 
 
 def get_dpad_vertical(controller):

@@ -50,6 +50,7 @@ class BodyShiftTests(unittest.TestCase):
         with patch.object(main, "get_left_stick", return_value=(0, 0)), \
                 patch.object(main, "get_right_stick", side_effect=[*sticks, KeyboardInterrupt]), \
                 patch.object(main, "get_r1", return_value=True), \
+                patch.object(main, "get_gait_button", return_value=False), \
                 patch.object(main, "get_dpad_vertical", return_value=0), \
                 patch.object(main, "send_frame", side_effect=lambda sock, frame: frames.append(frame)), \
                 patch.object(main.time, "sleep"), patch("builtins.print"):

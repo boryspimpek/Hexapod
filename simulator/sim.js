@@ -161,6 +161,14 @@ const status = document.getElementById("status");
 const keys = new Set();
 const parameters = {};
 async function loadParameters() {
+  const gaitResponse = await fetch("/api/gaits", {signal: AbortSignal.timeout(3000)});
+  if (!gaitResponse.ok) throw new Error(`HTTP ${gaitResponse.status}`);
+  const gaits = await gaitResponse.json();
+  const selector = document.getElementById("gait-select");
+  for (const name of gaits.names) selector.add(new Option(name, name));
+  selector.value = gaits.default;
+  state.gait = state.requested_gait = gaits.default;
+  selector.addEventListener("change", () => { state.requested_gait = selector.value; });
   const response = await fetch("/api/parameters", {signal: AbortSignal.timeout(3000)});
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const specs = await response.json();
@@ -214,8 +222,8 @@ Object.values(LEGS).forEach(leg => {
   robotModel.add(leg.target);
 });
 addEventListener("keydown", e => {
-  if (["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "ShiftLeft", "ShiftRight"]
-      .includes(e.code) && !e.target.matches("input,button")) {
+  if (["KeyX", "KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "ShiftLeft", "ShiftRight"]
+      .includes(e.code) && !e.target.matches("input,button,select")) {
     keys.add(e.code); e.preventDefault();
   }
 });
@@ -223,19 +231,21 @@ addEventListener("keyup", e => keys.delete(e.code));
 addEventListener("blur", () => keys.clear());
 document.addEventListener("visibilitychange", () => keys.clear());
 function controls() {
-  if (document.hidden) return {x: 0, y: 0, right_x: 0, right_y: 0, r1: false, dpad: 0};
+  if (document.hidden) return {x: 0, y: 0, right_x: 0, right_y: 0, r1: false, dpad: 0, gait_button: false};
   const pad = [...(navigator.getGamepads?.() || [])].find(p => p && p.connected);
   // Same per-axis deadzone/rescaling as PS4Controller, then the main.py axis swap.
   const axis = v => Math.abs(v) < .15 ? 0 : Math.sign(v) * (Math.abs(v) - .15) / .85;
   return pad ? {x: axis(-(pad.axes[1] ?? 0)), y: axis(pad.axes[0] ?? 0),
                 right_x: axis(pad.axes[2] ?? 0), right_y: axis(-(pad.axes[3] ?? 0)),
                 r1: !!pad.buttons[5]?.pressed,
+                gait_button: !!pad.buttons[0]?.pressed,
                 dpad: Number(!!pad.buttons[12]?.pressed) - Number(!!pad.buttons[13]?.pressed)} :
     {x: Number(keys.has("KeyW")) - Number(keys.has("KeyS")),
      y: Number(keys.has("KeyD")) - Number(keys.has("KeyA")),
      right_x: Number(keys.has("ArrowRight")) - Number(keys.has("ArrowLeft")),
      right_y: Number(keys.has("ArrowUp")) - Number(keys.has("ArrowDown")),
      r1: keys.has("ShiftLeft") || keys.has("ShiftRight"),
+     gait_button: keys.has("KeyX"),
      dpad: keys.has("ShiftLeft") || keys.has("ShiftRight") ? 0 :
        Number(keys.has("ArrowUp")) - Number(keys.has("ArrowDown"))};
 }
@@ -284,7 +294,8 @@ function drawFrame(frame) {
     leg.target.position.set(...result.target_world);
   });
   status.className = limitedCount ? "warning" : "";
-  status.textContent = `Phase ${frame.phase.toFixed(2)}
+  status.textContent = `Gait ${frame.gait}${frame.gait !== frame.requested_gait ? ` → ${frame.requested_gait}` : ""}
+Phase ${frame.phase.toFixed(2)}
 Ramp ${(frame.ramp * 100).toFixed(0)}%
 Roll ${frame.body_rotation[0].toFixed(1)}° · Pitch ${frame.body_rotation[1].toFixed(1)}°`;
   status.textContent += `\nX ${(position[0] - cx).toFixed(0)} mm · Y ${(position[1] - cy).toFixed(0)} mm
@@ -294,6 +305,7 @@ Heading ${THREE.MathUtils.radToDeg(yaw).toFixed(1)}°`;
 async function tick() {
   const started = performance.now();
   const requestVersion = resetVersion;
+  const requestedGait = state.requested_gait;
   try {
     const response = await fetch("/api/frame", {method: "POST",
       headers: {"Content-Type": "application/json"},
@@ -302,9 +314,14 @@ async function tick() {
     const frame = await response.json();
     if (!response.ok) throw new Error(frame.error || `HTTP ${response.status}`);
     if (requestVersion !== resetVersion) return;
+    const latestRequestedGait = state.requested_gait;
     state = {odometry: frame.odometry,
+             gait: frame.gait,
+             requested_gait: latestRequestedGait !== requestedGait ? latestRequestedGait : frame.requested_gait,
+             previous_gait_button: frame.previous_gait_button,
              phase: frame.phase, ramp: frame.ramp, direction: frame.direction, turn: frame.turn,
              previous_dpad: frame.previous_dpad};
+    document.getElementById("gait-select").value = state.requested_gait;
     // Keep the slider and its label in sync with D-pad/keyboard height changes.
     if (frame.z_height !== parameters.z_height) {
       const input = document.getElementById("z_height");

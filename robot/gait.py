@@ -1,5 +1,37 @@
 """Kierunek ruchu i trajektoria stopy."""
 import math
+from . import config as cfg
+
+
+def gait_settings(name=None):
+    name = cfg.DEFAULT_GAIT if name is None else name
+    if not isinstance(name, str) or name not in cfg.GAITS:
+        raise ValueError(f"Nieznany gait: {name!r}")
+    settings = cfg.GAITS[name]
+    ratio, offsets = settings["swing_ratio"], settings["phase_offsets"]
+    if not math.isfinite(ratio) or not 0 < ratio < 1:
+        raise ValueError("swing_ratio musi być pomiędzy 0 a 1")
+    if set(offsets) != set(cfg.LEGS) or any(
+            not math.isfinite(v) or not 0 <= v < 1 for v in offsets.values()):
+        raise ValueError("phase_offsets: wymagane fazy [0, 1) dla wszystkich nóg")
+    return settings
+
+
+def next_gait(current):
+    for name in cfg.GAIT_CYCLE:
+        gait_settings(name)
+    if not cfg.GAIT_CYCLE:
+        raise ValueError("GAIT_CYCLE nie może być pusty")
+    if current not in cfg.GAIT_CYCLE:
+        return cfg.GAIT_CYCLE[0]
+    return cfg.GAIT_CYCLE[(cfg.GAIT_CYCLE.index(current) + 1) % len(cfg.GAIT_CYCLE)]
+
+
+def stride_progress(phase, swing_ratio):
+    """0 -> 1 podczas przenoszenia nogi; 1 -> 0 podczas podparcia."""
+    if phase < swing_ratio:
+        return phase / swing_ratio
+    return 1 - (phase - swing_ratio) / (1 - swing_ratio)
 
 def calc_dir(jx, jy):
     magnitude = math.hypot(jx, jy)
@@ -8,8 +40,10 @@ def calc_dir(jx, jy):
     return (jx / magnitude, jy / magnitude)
 
 
-def calculate_trajectory(global_phase, cur_step_length, cur_step_height, p_start, jx, jy):
-    swing_ratio = 0.5
+def calculate_trajectory(global_phase, cur_step_length, cur_step_height, p_start, jx, jy,
+                         *, swing_ratio=None):
+    if swing_ratio is None:
+        swing_ratio = gait_settings()["swing_ratio"]
     step_dir = calc_dir(jx, jy)
     half = cur_step_length / 2.0
 

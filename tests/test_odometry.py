@@ -21,7 +21,7 @@ class OdometryTests(unittest.TestCase):
         state = {}
         frames = []
         for _ in range(count):
-            frame = simulate({**state, **controls})
+            frame = simulate({"step_length": 40, **state, **controls})
             frames.append(frame)
             state = {key: frame[key] for key in
                      ("phase", "ramp", "direction", "turn", "odometry")}
@@ -54,8 +54,8 @@ class OdometryTests(unittest.TestCase):
         first = simulate({"odometry": {"position": [40, 0], "yaw": math.pi / 2,
                                         "contacts": {}}})
         state = {"odometry": first["odometry"]}
-        for _ in range(50):
-            frame = simulate({**state, "x": 1})
+        for _ in range(100):
+            frame = simulate({**state, "x": 1, "step_length": 40})
             state = {k: frame[k] for k in ("phase", "ramp", "direction", "turn", "odometry")}
         self.assertAlmostEqual(frame["odometry"]["position"][0], 40)
         self.assertGreater(frame["odometry"]["position"][1], 30)

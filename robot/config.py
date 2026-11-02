@@ -3,7 +3,7 @@
 l_coxa, l_femur, l_tibia = 40.0, 80.0, 121.0
 
 gait_speed = 0.50  # ile "cykli chodu" na sekundę — to jest "prędkość"
-step_length = 0.0  # długość kroku w mm
+step_length = 40.0  # długość kroku w mm
 step_height = 40.0  # wysokość unoszenia stopy w mm
 ramp_time = 0.5  # czas narastania/zanikania prędkości chodu w sekundach
 stick_deadzone = 0.1  # strefa martwa joystika
@@ -54,6 +54,19 @@ LEG_PHASE_OFFSET = {
     'lr': 0.5,
     'rr': 0.0,
 }
+
+# Wybór chodu i część cyklu spędzona z nogą w powietrzu.
+GAITS = {
+    "trot": {"swing_ratio": 0.5, "phase_offsets": LEG_PHASE_OFFSET},
+    "crawl": {
+        "swing_ratio": 0.25,
+        # Kolejność: lf -> lr -> rf -> rr (faza lokalna = faza + offset).
+        "phase_offsets": {"lf": 0.0, "lr": 0.75, "rf": 0.5, "rr": 0.25},
+    },
+}
+DEFAULT_GAIT = "trot"
+GAIT_CYCLE = ("trot", "crawl")
+GAIT_BUTTON = 0  # X / krzyżyk PS4; sprawdź indeks: python -m robot.joystick
 
 # Pozycje początkowe nóg (punkt coxa) w układzie współrzędnych robota (x, y, z) w mm 
 # Used for visualization and turning geometry (center and foot radii).
