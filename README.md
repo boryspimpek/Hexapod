@@ -277,6 +277,7 @@ Run these commands from the project's root directory:
 python main.py
 python simulator.py
 python -m tools.manual_servos
+python -m tools.calibrate_servos
 python tools/print_angles.py
 python -m robot.joystick
 ```
@@ -285,6 +286,29 @@ Robot control and gamepad diagnostics require `pygame`.
 Manual control accepts final servo angles: it applies limits without reapplying
 inversion or trim. The robot program rounds angles to 0.1 degrees; the manual
 tool preserves the supplied precision.
+
+### Servo trim calibration
+
+Run `python -m tools.calibrate_servos` from the project root. The tool immediately
+sends the configured starting pose, using the same IK, inversion, trims, and
+limits as the robot control program. Only IDs in `ACTIVE_SERVO_IDS` are moved.
+Use it while the main robot control program is stopped.
+
+Enter one servo ID and its final command angle, for example `12 97` or `4 135`.
+Angles are absolute, accept decimals, and are clamped to the configured limits;
+inversion and trim are not applied again to these manual commands.
+Finish with `q`, Ctrl+C, or end of input to print the complete replacement trim
+for every configured servo (1–12 by default). Copy each value into the last
+field of its tuple in `LEGS` in `robot/config.py`; the file is not edited automatically.
+The next run loads those trims and includes them in the initial pose.
+
+The replacement trim is the final command minus the initial IK angle after
+inversion but before trim and limits. For example, a baseline of 90°, an existing
+trim of +3°, and a final command of 97° give a replacement trim of +7°.
+This also accounts for an initial pose clipped by limits. Servos left untouched
+(including inactive IDs) retain their existing trims. Startup displays any
+initial limit clipping. UDP commands provide no position feedback; the report
+records commands sent, not measured servo positions.
 
 
 ## Two PCA9685 boards (ESP32)

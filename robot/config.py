@@ -28,22 +28,22 @@ SERVO_ID, INVERTED, LIMITS, TRIM = 0, 1, 2, 3
 LEGS = {
     'lf': {
         'coxa':  (1,  True,  (45, 160), 0.0),
-        'femur': (2,  False,  (90, 180), 0.0),
+        'femur': (2,  False,  (90, 180), -7.0),
         'tibia': (3,  False,  (0, 150), 0.0),
     },
     'rf': {
         'coxa':  (4,  False, (20, 135), 0.0),
-        'femur': (5,  True, (0, 90), 0.0),
+        'femur': (5,  True, (0, 90), 3.0),
         'tibia': (6,  True, (30, 180), 0.0),
     },
     'lr': {
         'coxa':  (7,  True,  (20, 135), 0.0),
-        'femur': (8,  True,  (0, 90), 0.0),
+        'femur': (8,  True,  (0, 90), 5.0),
         'tibia': (9,  True,  (30, 180), 0.0),
     },
     'rr': {
         'coxa':  (10,  False, (45, 160), 0.0),
-        'femur': (11,  False, (90, 180), 0.0),
+        'femur': (11,  False, (90, 180), -6.0),
         'tibia': (12,  False, (0, 150), 0.0),
     },
 }
