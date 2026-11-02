@@ -14,7 +14,40 @@ def gait_settings(name=None):
     if set(offsets) != set(cfg.LEGS) or any(
             not math.isfinite(v) or not 0 <= v < 1 for v in offsets.values()):
         raise ValueError("phase_offsets: wymagane fazy [0, 1) dla wszystkich nóg")
+    shift = settings.get("body_shift", (0.0, 0.0))
+    if (not isinstance(shift, (tuple, list)) or len(shift) != 2
+            or any(type(v) not in (int, float) or not math.isfinite(v) or v < 0
+                   for v in shift)):
+        raise ValueError("body_shift: wymagane dwie nieujemne amplitudy w mm")
+    if any(shift) and (ratio > .25 or any(
+            (b - a) % 1 < ratio - 1e-9
+            for a, b in zip(sorted(offsets.values()),
+                            sorted(offsets.values())[1:] + sorted(offsets.values())[:1]))):
+        raise ValueError("body_shift wymaga chodu bez nakładania unoszenia nóg")
     return settings
+
+
+def gait_body_shift(phase, ramp, settings):
+    """Płynny ruch korpusu; +X do przodu, +Y w prawo (jak sterowanie)."""
+    amplitude_x, amplitude_y = settings.get("body_shift", (0.0, 0.0))
+    if not ramp or not (amplitude_x or amplitude_y):
+        return (0.0, 0.0)
+    # Środki faz unoszenia: korpus najdalej od danej nogi w połowie jej kroku.
+    centers = sorted(((settings["swing_ratio"] / 2 - offset) % 1, name)
+                     for name, offset in settings["phase_offsets"].items())
+    for index, (start, previous) in enumerate(centers):
+        end, following = centers[(index + 1) % len(centers)]
+        duration = (end - start) % 1
+        elapsed = (phase - start) % 1
+        if elapsed < duration:
+            t = elapsed / duration
+            blend = t * t * (3 - 2 * t)
+            def opposite(name):
+                return (-amplitude_x if name.endswith("f") else amplitude_x,
+                        amplitude_y if name.startswith("l") else -amplitude_y)
+            a, b = opposite(previous), opposite(following)
+            return tuple(ramp * (a[i] + (b[i] - a[i]) * blend) for i in range(2))
+    raise ValueError("Nieprawidłowe fazy body_shift")
 
 
 def next_gait(current):

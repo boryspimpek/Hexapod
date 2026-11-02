@@ -1,7 +1,7 @@
 """Shared robot frame calculations; no controller or hardware side effects."""
 from . import config as cfg
 import math
-from .gait import calculate_trajectory, calc_dir, gait_settings, stride_progress
+from .gait import calculate_trajectory, calc_dir, gait_settings, stride_progress, gait_body_shift
 from .servos import correct_angle
 from .kinematics import inverse_kinematics
 from .body import pose_point
@@ -23,6 +23,9 @@ def calculate_frame(phase=0.0, ramp=0.0, direction=(0.0, 0.0), *,
     gait = cfg.DEFAULT_GAIT if gait is None else gait
     settings = gait_settings(gait)
     swing_ratio = settings["swing_ratio"]
+    shift_x, shift_y = gait_body_shift(phase, ramp, settings)
+    body_x += shift_x
+    body_y += shift_y
     step_length = cfg.step_length if step_length is None else step_length
     step_height = cfg.step_height if step_height is None else step_height
     z_height = cfg.z_height if z_height is None else z_height
@@ -77,6 +80,7 @@ def calculate_frame(phase=0.0, ramp=0.0, direction=(0.0, 0.0), *,
             servos[sid] = corrected[joint]
         legs[name] = {"target": target, "raw_angles": raw, "servo_angles": corrected}
     return {"legs": legs, "servos": servos, "body_offset": (body_x, -body_y, 0.0),
+            "gait_body_offset": (shift_x, -shift_y, 0.0),
             "body_rotation": (body_roll, body_pitch, 0.0),
             "gait": gait, "sample_phase": phase}
 

@@ -9,7 +9,7 @@ from robot.body import body_center
 from robot.gait import gait_settings, next_gait
 from robot.joystick import get_gait_button
 from robot.motion import calculate_frame, initial_state, step_motion
-from simulator import simulate
+from simulator import simulate, world_point
 
 
 class GaitTests(unittest.TestCase):
@@ -32,11 +32,8 @@ class GaitTests(unittest.TestCase):
                           for p in (phase, phase + elapsed_phase)]
                 vectors = []
                 for frame in frames:
-                    point = frame["legs"][name]["target"]
-                    origin = cfg.LEG_ORIGINS[name]
-                    side = 1 if name.startswith("l") else -1
-                    vectors.append((origin[0] + point[0] - center[0],
-                                    origin[1] + side * point[1] - center[1]))
+                    point = world_point(name, frame["legs"][name]["target"], frame["body_offset"])
+                    vectors.append((point[0] - center[0], point[1] - center[1]))
                 a, b = vectors
                 delta = math.atan2(a[0] * b[1] - a[1] * b[0], a[0] * b[0] + a[1] * b[1])
                 self.assertAlmostEqual(delta, -math.radians(cfg.turn_step_angle) * progress)

@@ -78,6 +78,20 @@ use the standard mapping independently of the pygame configuration.
 Three feet on the ground do not guarantee balance; the simulator shows
 kinematics without modeling the center of mass or stability.
 
+The crawl profile also shifts the body away from the swinging leg. Set
+`"body_shift": (10.0, 10.0)` in `GAITS["crawl"]` to adjust the front/back and
+left/right amplitudes in millimeters; `(0.0, 0.0)` disables this motion.
+For LF swing the body moves back and right; LR moves it forward and right;
+RF moves it back and left; RR moves it forward and left. The offset reaches
+these amplitudes at mid-swing and smoothly interpolates between successive
+legs, including across the cycle boundary. It follows the configured phase
+offsets and swing duration. It ramps in/out with walking and also works when
+turning in place. Manual R1 body translation adds to the automatic shift.
+Inverse body compensation preserves the ground foot targets; the simulator
+uses the same combined body pose as the hardware commands.
+This is a preset body trajectory, without center-of-mass measurement or
+feedback balance control. Actual foot positions remain subject to servo limits.
+
 With `step_length = 0`, the legs lift without forward travel. Set a positive
 stride in the config or simulator to test walking.
 
