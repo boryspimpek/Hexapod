@@ -1,3 +1,5 @@
+"python -m tools.manual_servos"
+
 import math
 import socket
 from robot.config import LIMITS
