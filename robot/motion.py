@@ -91,9 +91,12 @@ def advance_ramp(ramp, running, elapsed):
     return ramp
 
 
-def next_phase(phase, ramp, elapsed, *, gait_speed=None):
-    gait_speed = cfg.gait_speed if gait_speed is None else gait_speed
-    return (phase + gait_speed * elapsed) % 1.0 if ramp > 0.0 else 0.0
+def next_phase(phase, ramp, elapsed, *, gait, trot_gait_speed=None,
+               crawl_gait_speed=None):
+    gait_settings(gait)
+    selected_speed = {"trot": cfg.trot_gait_speed if trot_gait_speed is None else trot_gait_speed,
+                      "crawl": cfg.crawl_gait_speed if crawl_gait_speed is None else crawl_gait_speed}[gait]
+    return (phase + selected_speed * elapsed) % 1.0 if ramp > 0.0 else 0.0
 
 
 def initial_state():
@@ -103,7 +106,8 @@ def initial_state():
             "gait": cfg.DEFAULT_GAIT, "requested_gait": cfg.DEFAULT_GAIT}
 
 
-def step_motion(state, x, y, elapsed, *, gait_speed=None, step_length=None,
+def step_motion(state, x, y, elapsed, *, trot_gait_speed=None,
+                crawl_gait_speed=None, step_length=None,
                 step_height=None, z_height=None,
                 x_offset_front=None, y_offset_front=None,
                 x_offset_rear=None, y_offset_rear=None,
@@ -139,7 +143,9 @@ def step_motion(state, x, y, elapsed, *, gait_speed=None, step_length=None,
                             body_x=body_x, body_y=body_y,
                             body_roll=body_roll, body_pitch=body_pitch,
                             turn=active_turn, turn_step_angle=turn_step_angle, gait=active_gait)
-    updated = {"phase": next_phase(phase, ramp, elapsed, gait_speed=gait_speed),
+    updated = {"phase": next_phase(phase, ramp, elapsed, gait=active_gait,
+                                   trot_gait_speed=trot_gait_speed,
+                                   crawl_gait_speed=crawl_gait_speed),
                "ramp": ramp, "direction": direction, "turn": active_turn,
                "gait": active_gait, "requested_gait": requested_gait}
     return updated, frame

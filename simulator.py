@@ -22,7 +22,8 @@ from robot.gait import gait_settings, next_gait
 
 ASSETS = Path(__file__).resolve().parent / "simulator"
 PARAMETER_SPECS = {
-    "gait_speed": {"min": 0, "max": 5, "step": 0.1, "unit": "Hz"},
+    "trot_gait_speed": {"min": 0, "max": 5, "step": 0.05, "unit": "Hz"},
+    "crawl_gait_speed": {"min": 0, "max": 5, "step": 0.05, "unit": "Hz"},
     "step_length": {"min": 0, "max": 150, "step": 1, "unit": "mm"},
     "step_height": {"min": 0, "max": 100, "step": 1, "unit": "mm"},
     "turn_step_angle": {"min": 0, "max": 30, "step": 0.5, "unit": "deg"},
@@ -148,7 +149,7 @@ def simulate(data):
     frame["reference_center"] = center
     frame["odometry"] = advance_odometry(
         odometry, {name: leg["target_world"] for name, leg in frame["legs"].items()},
-        frame["sample_phase"], gait=frame["gait"], moving=(parameters["gait_speed"] > 0
+        frame["sample_phase"], gait=frame["gait"], moving=(parameters[f"{frame['gait']}_gait_speed"] > 0
                                 and (values["ramp"] > 0 or frame["ramp"] > 0)))
     return frame
 

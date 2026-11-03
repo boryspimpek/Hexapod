@@ -37,7 +37,7 @@ class GaitParameterTests(unittest.TestCase):
 
     def test_live_settings_change_phase_and_trajectory(self):
         frame = simulate({"x": 1, "phase": (.125 - cfg.LEG_PHASE_OFFSET["rf"]) % 1, "ramp": 1,
-                          "gait_speed": 2, "step_length": 80, "step_height": 20})
+                          "trot_gait_speed": 2, "step_length": 80, "step_height": 20})
         self.assertAlmostEqual(frame["phase"], ((.125 - cfg.LEG_PHASE_OFFSET["rf"]) % 1 + .04) % 1)
         target = frame["legs"]["rf"]["target"]
         self.assertAlmostEqual(target[0], cfg.p_start["rf"][0] - 20)
@@ -46,7 +46,7 @@ class GaitParameterTests(unittest.TestCase):
     def test_zero_settings_and_session_isolation(self):
         request = {"x": 1, "phase": .125, "ramp": 1}
         before = simulate(request)
-        stopped = simulate({**request, "gait_speed": 0, "step_length": 0, "step_height": 0})
+        stopped = simulate({**request, "trot_gait_speed": 0, "step_length": 0, "step_height": 0})
         self.assertEqual(stopped["phase"], .125)
         for name, leg in stopped["legs"].items():
             self.assertEqual(leg["target"], cfg.p_start[name])
@@ -57,7 +57,8 @@ class GaitParameterTests(unittest.TestCase):
         self.assertEqual(default["legs"]["rf"]["target"], frame["legs"]["rf"]["target"])
 
     def test_rejects_invalid_parameters(self):
-        for name, maximum in (("gait_speed", 5), ("step_length", 150), ("step_height", 100)):
+        for name, maximum in (("trot_gait_speed", 5), ("crawl_gait_speed", 5),
+                              ("step_length", 150), ("step_height", 100)):
             for value in (-1, maximum + 1, float("nan"), float("inf"), "invalid"):
                 with self.subTest(name=name, value=value), self.assertRaises(ValueError):
                     simulate({name: value})

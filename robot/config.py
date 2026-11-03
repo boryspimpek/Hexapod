@@ -5,6 +5,37 @@
 # Długości segmentów nogi [mm].
 l_coxa, l_femur, l_tibia = 40.0, 80.0, 121.0
 
+# Współrzędne (x, y, z) [mm] w lokalnym układzie danej nogi.
+z_height = -62
+x_offset_front = 101
+y_offset_front = 102
+x_offset_rear = -101
+y_offset_rear = 102
+p_start = {
+    'lf': (x_offset_front, y_offset_front, z_height),
+    'rf': (x_offset_front, y_offset_front, z_height),
+    'lr': (x_offset_rear, y_offset_rear, z_height),
+    'rr': (x_offset_rear, y_offset_rear, z_height),
+}
+
+# --- Parametry kroku i rodzaje chodu ---
+
+trot_gait_speed = 1.50  # liczba cykli chodu na sekundę
+crawl_gait_speed = 0.25  # liczba cykli chodu na sekundę
+step_length = 120.0  # długość kroku [mm]
+step_height = 40.0  # wysokość unoszenia stopy [mm]
+turn_step_angle = 10.0  # obrót na cykl chodu przy pełnym wychyleniu drążka [°]
+ramp_time = 0.5  # czas narastania/zanikania prędkości chodu [s]
+stick_deadzone = 0.1  # strefa martwa joysticka
+
+# --- Sterowanie pozycją korpusu ---
+
+BODY_SHIFT_MAX = 30.0  # przesunięcie na oś przy pełnym wychyleniu prawego drążka [mm]
+BODY_TILT_MAX = 8.0  # przechył na oś przy pełnym wychyleniu lewego drążka z R1 [°]
+HEIGHT_STEP = 5.0  # zmiana wysokości na naciśnięcie D-pada [mm]
+HEIGHT_LIMITS = (-150.0, -20.0)  # zakres z_height podczas sterowania [mm]
+
+
 # Punkty mocowania coxa w układzie robota (x, y, z) [mm].
 # Używane do wizualizacji i geometrii skrętu (środek i promienie stóp).
 LEG_ORIGINS = {
@@ -28,19 +59,6 @@ COXA_ZERO = 90.0  # przesunięcie coxa, aby 0° było wzdłuż osi robota
 TIBIA_OFFSET = -25.0  # korekta uwzględniająca wygięcie segmentu tibia
 
 # --- Pozycje startowe stóp ---
-
-# Współrzędne (x, y, z) [mm] w lokalnym układzie danej nogi.
-z_height = -62
-x_offset_front = 101
-y_offset_front = 102
-x_offset_rear = -101
-y_offset_rear = 102
-p_start = {
-    'lf': (x_offset_front, y_offset_front, z_height),
-    'rf': (x_offset_front, y_offset_front, z_height),
-    'lr': (x_offset_rear, y_offset_rear, z_height),
-    'rr': (x_offset_rear, y_offset_rear, z_height),
-}
 
 
 # --- Serwa i kalibracja ---
@@ -73,15 +91,6 @@ LEGS = {
 
 ACTIVE_SERVO_IDS = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
 
-# --- Parametry kroku i rodzaje chodu ---
-
-gait_speed = 0.50  # liczba cykli chodu na sekundę
-step_length = 40.0  # długość kroku [mm]
-step_height = 40.0  # wysokość unoszenia stopy [mm]
-turn_step_angle = 10.0  # obrót na cykl chodu przy pełnym wychyleniu drążka [°]
-ramp_time = 0.5  # czas narastania/zanikania prędkości chodu [s]
-stick_deadzone = 0.1  # strefa martwa joysticka
-
 # Przesunięcia faz nóg dla chodu trot.
 LEG_PHASE_OFFSET = {
     'lf': 0.0,
@@ -97,7 +106,7 @@ GAITS = {
         "swing_ratio": 0.25,
         # Przesunięcie korpusu przeciwnie do unoszonej nogi [mm]:
         # (przód/tył, lewo/prawo). (0.0, 0.0) wyłącza efekt.
-        "body_shift": (30.0, 30.0),
+        "body_shift": (20.0, 20.0),
         # Kolejność: lf -> lr -> rf -> rr (faza lokalna = faza + offset).
         "phase_offsets": {"lf": 0.0, "lr": 0.25, "rf": 0.5, "rr": 0.75},
     },
@@ -129,9 +138,3 @@ DPAD_UP_BUTTON = 11
 DPAD_DOWN_BUTTON = 12
 
 
-# --- Sterowanie pozycją korpusu ---
-
-BODY_SHIFT_MAX = 30.0  # przesunięcie na oś przy pełnym wychyleniu prawego drążka [mm]
-BODY_TILT_MAX = 8.0  # przechył na oś przy pełnym wychyleniu lewego drążka z R1 [°]
-HEIGHT_STEP = 5.0  # zmiana wysokości na naciśnięcie D-pada [mm]
-HEIGHT_LIMITS = (-150.0, -20.0)  # zakres z_height podczas sterowania [mm]

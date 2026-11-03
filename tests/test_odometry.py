@@ -71,7 +71,7 @@ class OdometryTests(unittest.TestCase):
             pose = frame["odometry"]
 
     def test_stopping_zero_speed_zero_stride_and_reset(self):
-        for settings in ({}, {"x": 1, "gait_speed": 0},
+        for settings in ({}, {"x": 1, "trot_gait_speed": 0},
                          {"x": 1, "step_length": 0}):
             for frame in self.sequence(settings, 40):
                 self.assert_point_equal(frame["odometry"]["position"], body_center()[:2])

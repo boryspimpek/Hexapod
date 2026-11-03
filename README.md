@@ -110,7 +110,7 @@ The browser uses the standard gamepad mapping (left axes 0/1, right axes 2/3).
 `R1_BUTTON` sets the hardware button index (10, verified on this controller). If your driver uses
 a different mapping, identify R1 using `python -m robot.joystick` and change
 this setting. The browser uses standard gamepad button 5 for R1.
-The "Gait parameters" panel lets you adjust `gait_speed`,
+The "Gait parameters" panel lets you adjust `trot_gait_speed` and `crawl_gait_speed`,
 `step_length`, `step_height`, `turn_step_angle`, and `z_height` live.
 `z_height` sets a shared baseline.
 The `x_offset_front`, `y_offset_front`, `x_offset_rear`, and `y_offset_rear`
@@ -272,7 +272,8 @@ Each servo should be set to 90 degrees in the configuration shown in the photo.
 The robot settings are in `robot/config.py`. The main groups are:
 
 - **Geometry and gait:** `l_coxa`, `l_femur`, and `l_tibia` define the segment
-  lengths in millimeters. `gait_speed`, `step_length`, `step_height`, and
+lengths in millimeters. `trot_gait_speed` and `crawl_gait_speed` set gait cycle
+rates in Hz for their respective gaits. `step_length`, `step_height`, and
   `ramp_time` control the step speed and shape. `LEG_PHASE_OFFSET` sets phase
   offsets between the legs, while `LEG_ORIGINS` defines their mounting positions
   used by the visualization.
