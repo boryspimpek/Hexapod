@@ -150,7 +150,8 @@ def simulate(data):
     frame["odometry"] = advance_odometry(
         odometry, {name: leg["target_world"] for name, leg in frame["legs"].items()},
         frame["sample_phase"], gait=frame["gait"], moving=(parameters[f"{frame['gait']}_gait_speed"] > 0
-                                and (values["ramp"] > 0 or frame["ramp"] > 0)))
+                                and (values["ramp"] > 0 or frame["ramp"] > 0)),
+        turn=frame["turn"])
     return frame
 
 

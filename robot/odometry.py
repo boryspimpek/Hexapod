@@ -31,11 +31,14 @@ def read_odometry(value):
             "contacts": {name: list(point) for name, point in contacts.items()}}
 
 
-def advance_odometry(previous, feet, phase, *, moving=True, gait=None):
-    """Fit the SE(2) transform that holds shared support targets still.
+def advance_odometry(previous, feet, phase, *, moving=True, gait=None, turn=0.0):
+    """Estimate pose change from shared stance targets.
 
     At support exchange there are no shared anchors: preserve the pose and
-    establish the newly landed pair. Servo clipping is deliberately excluded.
+    establish the newly landed feet. Straight walking estimates translation
+    only, since changing stride length during ramp-up deforms the support
+    geometry; rotation is fitted only while a turn is commanded. Servo
+    clipping is deliberately excluded.
     """
     center = body_center()
     settings = gait_settings(gait)
@@ -53,7 +56,15 @@ def advance_odometry(previous, feet, phase, *, moving=True, gait=None):
                   for p, q in zip(new, old))
         cross = sum((p[0] - a[0]) * (q[1] - b[1]) - (p[1] - a[1]) * (q[0] - b[0])
                     for p, q in zip(new, old))
-        delta = math.atan2(cross, dot) if math.hypot(dot, cross) > 1e-12 else 0.0
+        # During straight walking, ramping the stride length changes the
+        # support-foot geometry. A free SE(2) fit mistakes that deformation
+        # for body rotation, especially with crawl's three support legs.
+        # Straight commands have no commanded heading change, so estimate
+        # translation from the support centroid and reserve rotation fitting
+        # for an active turn.
+        delta = (math.atan2(cross, dot)
+                 if abs(turn) > cfg.stick_deadzone and math.hypot(dot, cross) > 1e-12
+                 else 0.0)
         c, s = math.cos(delta), math.sin(delta)
         dx, dy = b[0] - (c * a[0] - s * a[1]), b[1] - (s * a[0] + c * a[1])
         c, s = math.cos(yaw), math.sin(yaw)
