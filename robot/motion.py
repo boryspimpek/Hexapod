@@ -143,6 +143,14 @@ def step_motion(state, x, y, elapsed, *, trot_gait_speed=None,
         active_step_length = minimum + (max_step_length - minimum) * intensity
     else:
         active_step_length = max_step_length
+    max_turn_step_angle = (cfg.turn_step_angle if turn_step_angle is None
+                           else turn_step_angle)
+    if turning:
+        turn_intensity = (min(1.0, abs(turn)) - cfg.stick_deadzone) / (1.0 - cfg.stick_deadzone)
+        minimum_turn = min(cfg.MIN_TURN_STEP_ANGLE, max_turn_step_angle)
+        active_turn_step_angle = minimum_turn + (max_turn_step_angle - minimum_turn) * turn_intensity
+    else:
+        active_turn_step_angle = max_turn_step_angle
     frame = calculate_frame(phase, ramp, direction,
                             step_length=active_step_length, step_height=step_height,
                             z_height=z_height,
@@ -150,7 +158,7 @@ def step_motion(state, x, y, elapsed, *, trot_gait_speed=None,
                             x_offset_rear=x_offset_rear, y_offset_rear=y_offset_rear,
                             body_x=body_x, body_y=body_y,
                             body_roll=body_roll, body_pitch=body_pitch,
-                            turn=active_turn, turn_step_angle=turn_step_angle, gait=active_gait)
+                            turn=active_turn, turn_step_angle=active_turn_step_angle, gait=active_gait)
     updated = {"phase": next_phase(phase, ramp, elapsed, gait=active_gait,
                                    trot_gait_speed=trot_gait_speed,
                                    crawl_gait_speed=crawl_gait_speed),
