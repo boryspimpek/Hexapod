@@ -22,7 +22,8 @@ p_start = {
 
 trot_gait_speed = 1.50  # liczba cykli chodu na sekundę
 crawl_gait_speed = 0.25  # liczba cykli chodu na sekundę
-step_length = 120.0  # długość kroku [mm]
+step_length = 120.0  # maksymalna długość kroku [mm]
+MIN_STEP_LENGTH = 40.0  # minimalna długość kroku przy aktywnym ruchu [mm]
 step_height = 40.0  # wysokość unoszenia stopy [mm]
 turn_step_angle = 10.0  # obrót na cykl chodu przy pełnym wychyleniu drążka [°]
 ramp_time = 0.5  # czas narastania/zanikania prędkości chodu [s]

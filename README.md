@@ -273,7 +273,9 @@ The robot settings are in `robot/config.py`. The main groups are:
 
 - **Geometry and gait:** `l_coxa`, `l_femur`, and `l_tibia` define the segment
 lengths in millimeters. `trot_gait_speed` and `crawl_gait_speed` set gait cycle
-rates in Hz for their respective gaits. `step_length`, `step_height`, and
+rates in Hz for their respective gaits. `step_length` sets the maximum stride;
+joystick deflection scales it down to `MIN_STEP_LENGTH` (40 mm by default).
+`step_height` and
   `ramp_time` control the step speed and shape. `LEG_PHASE_OFFSET` sets phase
   offsets between the legs, while `LEG_ORIGINS` defines their mounting positions
   used by the visualization.

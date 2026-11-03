@@ -135,8 +135,16 @@ def step_motion(state, x, y, elapsed, *, trot_gait_speed=None,
     if switching and ramp == 0:
         active_gait = requested_gait
         phase = 0.0
+    max_step_length = cfg.step_length if step_length is None else step_length
+    if translating:
+        stick_magnitude = min(1.0, math.hypot(x, y))
+        intensity = (stick_magnitude - cfg.stick_deadzone) / (1.0 - cfg.stick_deadzone)
+        minimum = min(cfg.MIN_STEP_LENGTH, max_step_length)
+        active_step_length = minimum + (max_step_length - minimum) * intensity
+    else:
+        active_step_length = max_step_length
     frame = calculate_frame(phase, ramp, direction,
-                            step_length=step_length, step_height=step_height,
+                            step_length=active_step_length, step_height=step_height,
                             z_height=z_height,
                             x_offset_front=x_offset_front, y_offset_front=y_offset_front,
                             x_offset_rear=x_offset_rear, y_offset_rear=y_offset_rear,
