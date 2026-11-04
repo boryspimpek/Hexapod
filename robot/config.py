@@ -6,11 +6,11 @@
 l_coxa, l_femur, l_tibia = 40.0, 80.0, 121.0
 
 # Współrzędne (x, y, z) [mm] w lokalnym układzie danej nogi.
-z_height = -62
-x_offset_front = 101
-y_offset_front = 102
-x_offset_rear = -101
-y_offset_rear = 102
+z_height = -70
+x_offset_front = 100
+y_offset_front = 100
+x_offset_rear = -100
+y_offset_rear = 100
 p_start = {
     'lf': (x_offset_front, y_offset_front, z_height),
     'rf': (x_offset_front, y_offset_front, z_height),
@@ -21,7 +21,7 @@ p_start = {
 # --- Parametry kroku i rodzaje chodu ---
 
 trot_gait_speed = 1.50  # liczba cykli chodu na sekundę
-crawl_gait_speed = 0.25  # liczba cykli chodu na sekundę
+crawl_gait_speed = 0.5  # liczba cykli chodu na sekundę
 
 step_length = 120.0  # maksymalna długość kroku [mm]
 MIN_STEP_LENGTH = 40.0  # minimalna długość kroku przy aktywnym ruchu [mm]
@@ -31,8 +31,8 @@ MIN_TURN_STEP_ANGLE = 10.0  # minimalny obrót na cykl chodu przy aktywnym ruchu
 
 step_height = 40.0  # wysokość unoszenia stopy [mm]
 
-ramp_time = 0.5  # czas narastania/zanikania prędkości chodu [s]
-stick_deadzone = 0.1  # strefa martwa joysticka
+ramp_time = 0.25  # czas narastania/zanikania prędkości chodu [s]
+stick_deadzone = 0.0  # strefa martwa joysticka
 
 # --- Sterowanie pozycją korpusu ---
 
@@ -107,12 +107,12 @@ LEG_PHASE_OFFSET = {
 
 # Wybór chodu i część cyklu spędzona z nogą w powietrzu.
 GAITS = {
-    "trot": {"swing_ratio": 0.5, "phase_offsets": LEG_PHASE_OFFSET},
+    "trot": {"swing_ratio": 0.3, "phase_offsets": LEG_PHASE_OFFSET},
     "crawl": {
         "swing_ratio": 0.25,
         # Przesunięcie korpusu przeciwnie do unoszonej nogi [mm]:
         # (przód/tył, lewo/prawo). (0.0, 0.0) wyłącza efekt.
-        "body_shift": (20.0, 20.0),
+        "body_shift": (30.0, 30.0),
         # Kolejność: lf -> lr -> rf -> rr (faza lokalna = faza + offset).
         "phase_offsets": {"lf": 0.0, "lr": 0.25, "rf": 0.5, "rr": 0.75},
     },

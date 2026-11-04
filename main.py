@@ -123,8 +123,8 @@ def main_loop(controller, sock):
             print(f"z_height: {controls.z_height:.1f} mm")
         state = next_state
         angles = send_frame(sock, frame)
-        if was_moving or state["ramp"] > 0:
-            print(f"gait_phase: {phase:.3f}, ramp: {state['ramp']:.3f}, angles: {angles}")
+        # if was_moving or state["ramp"] > 0:
+        #     print(f"gait_phase: {phase:.3f}, ramp: {state['ramp']:.3f}, angles: {angles}")
         time.sleep(cfg.LOOP_INTERVAL)
 
 

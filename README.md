@@ -370,17 +370,13 @@ records commands sent, not measured servo positions.
 
 `esp32.ino` supports two boards on the same I2C bus. Keep the first at
 `0x40`; bridge the **A0 address pads** on the second to select `0x41`.
-Connect both SDA pins to ESP32 GPIO 21, both SCL pins to GPIO 22,
-both VCC pins to 3.3 V, and connect all grounds together. Connect servo
-power to V+ using an external supply suitable for the servos; do not
-power the servos from the ESP32 3.3 V pin.
 
 The default wiring is:
 
 | Servo IDs | PCA9685 address | Channels, in ID order |
 | --- | --- | --- |
-| 1-6 | 0x40 | 0-5 |
-| 7-12 | 0x41 | 0-5 |
+| 1-6 | 0x40 | 1-6 |
+| 7-12 | 0x41 | 7-12 |
 
 Each row in `legServos` contains `{id, board, channel, calibration, startAngle}`.
 Board `0` selects `PCA_ADDRS[0]`, board `1` selects `PCA_ADDRS[1]`.
