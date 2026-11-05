@@ -24,7 +24,7 @@ ASSETS = Path(__file__).resolve().parent / "simulator"
 PARAMETER_SPECS = {
     "trot_gait_speed": {"min": 0, "max": 5, "step": 0.05, "unit": "Hz"},
     "crawl_gait_speed": {"min": 0, "max": 5, "step": 0.05, "unit": "Hz"},
-    "step_length": {"min": 0, "max": 150, "step": 1, "unit": "mm"},
+    "step_length": {"min": 0, "max": 250, "step": 1, "unit": "mm"},
     "step_height": {"min": 0, "max": 100, "step": 1, "unit": "mm"},
     "turn_step_angle": {"min": 0, "max": 30, "step": 0.5, "unit": "deg"},
     "z_height": {"min": -200, "max": 0, "step": 1, "unit": "mm"},

@@ -24,7 +24,7 @@ trot_gait_speed = 1.50  # liczba cykli chodu na sekundę
 crawl_gait_speed = 0.5  # liczba cykli chodu na sekundę
 
 step_length = 120.0  # maksymalna długość kroku [mm]
-MIN_STEP_LENGTH = 40.0  # minimalna długość kroku przy aktywnym ruchu [mm]
+MIN_STEP_LENGTH = 20.0  # minimalna długość kroku przy aktywnym ruchu [mm]
 
 turn_step_angle = 30.0  # obrót na cykl chodu przy pełnym wychyleniu drążka [°]
 MIN_TURN_STEP_ANGLE = 10.0  # minimalny obrót na cykl chodu przy aktywnym ruchu [°]
@@ -36,8 +36,8 @@ stick_deadzone = 0.0  # strefa martwa joysticka
 
 # --- Sterowanie pozycją korpusu ---
 
-BODY_SHIFT_MAX = 30.0  # przesunięcie na oś przy pełnym wychyleniu prawego drążka [mm]
-BODY_TILT_MAX = 8.0  # przechył na oś przy pełnym wychyleniu lewego drążka z R1 [°]
+BODY_SHIFT_MAX = 80.0  # przesunięcie na oś przy pełnym wychyleniu prawego drążka [mm]
+BODY_TILT_MAX = 30.0  # przechył na oś przy pełnym wychyleniu lewego drążka z R1 [°]
 HEIGHT_STEP = 5.0  # zmiana wysokości na naciśnięcie D-pada [mm]
 HEIGHT_LIMITS = (-150.0, -20.0)  # zakres z_height podczas sterowania [mm]
 
@@ -75,22 +75,22 @@ SERVO_ID, INVERTED, LIMITS, TRIM = 0, 1, 2, 3
 LEGS = {
     'lf': {
         'coxa':  (1,  True,  (45, 160),  0.0),
-        'femur': (2,  False, (90, 180), -7.0),
+        'femur': (2,  False, (70, 180), -7.0),
         'tibia': (3,  False, (0, 150),   0.0),
     },
     'rf': {
         'coxa':  (4,  False, (20, 135),  0.0),
-        'femur': (5,  True,  (0, 90),    3.0),
+        'femur': (5,  True,  (0, 110),    3.0),
         'tibia': (6,  True,  (30, 180),  0.0),
     },
     'lr': {
         'coxa':  (7,  True,  (20, 135),  0.0),
-        'femur': (8,  True,  (0, 90),    5.0),
+        'femur': (8,  True,  (0, 110),    5.0),
         'tibia': (9,  True,  (30, 180),  0.0),
     },
     'rr': {
         'coxa':  (10, False, (45, 160),  0.0),
-        'femur': (11, False, (90, 180), -6.0),
+        'femur': (11, False, (70, 180), -6.0),
         'tibia': (12, False, (0, 150),   0.0),
     },
 }
