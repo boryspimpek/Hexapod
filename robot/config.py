@@ -21,7 +21,7 @@ p_start = {
 # --- Parametry kroku i rodzaje chodu ---
 
 trot_gait_speed = 2.50  # liczba cykli chodu na sekundę
-crawl_gait_speed = 0.5  # liczba cykli chodu na sekundę
+crawl_gait_speed = 0.25  # liczba cykli chodu na sekundę
 
 step_length = 120.0  # maksymalna długość kroku [mm]
 MIN_STEP_LENGTH = 20.0  # minimalna długość kroku przy aktywnym ruchu [mm]
@@ -108,8 +108,8 @@ GAITS = {
         "swing_ratio": 0.25,
         # Przesunięcie korpusu przeciwnie do unoszonej nogi [mm]:
         # (przód/tył, lewo/prawo). (0.0, 0.0) wyłącza efekt.
-        "body_shift": (20.0, 30.0),
-        "phase_offsets": {"lf": 0.0, "lr": 0.5, "rf": 0.25, "rr": 0.75},
+        "body_shift": (20.0, 20.0),
+        "phase_offsets": {"lf": 0.0, "lr": 0.25, "rf": 0.5, "rr": 0.75},
     },
 }
 
