@@ -108,7 +108,7 @@ GAITS = {
         "swing_ratio": 0.25,
         # Przesunięcie korpusu przeciwnie do unoszonej nogi [mm]:
         # (przód/tył, lewo/prawo). (0.0, 0.0) wyłącza efekt.
-        "body_shift": (10.0, 20.0),
+        "body_shift": (20.0, 30.0),
         # Kolejność: lf -> lr -> rf -> rr (faza lokalna = faza + offset).
         "phase_offsets": {"lf": 0.0, "lr": 0.5, "rf": 0.25, "rr": 0.75},
     },
