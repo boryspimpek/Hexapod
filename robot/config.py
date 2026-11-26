@@ -3,7 +3,7 @@
 # --- Geometria nóg i mocowań ---
 
 # Długości segmentów nogi [mm].
-l_coxa, l_femur, l_tibia = 40.0, 80.0, 121.0
+l_coxa, l_femur, l_tibia = 40.0, 80.0, 155.0
 
 # Współrzędne (x, y, z) [mm] w lokalnym układzie danej nogi.
 z_height = -70
@@ -20,7 +20,7 @@ p_start = {
 
 # --- Parametry kroku i rodzaje chodu ---
 
-trot_gait_speed = 2.50  # liczba cykli chodu na sekundę
+trot_gait_speed = 1.0  # liczba cykli chodu na sekundę
 crawl_gait_speed = 0.25  # liczba cykli chodu na sekundę
 
 step_length = 120.0  # maksymalna długość kroku [mm]
@@ -41,7 +41,8 @@ ramp_time = 0.25  # czas narastania/zanikania prędkości chodu [s]
 
 # Przesunięcia wynikające z montażu i mechaniki, dodawane do kątów z kinematyki.
 COXA_ZERO = 90.0  # przesunięcie coxa, aby 0° było wzdłuż osi robota
-TIBIA_OFFSET = -25.0  # korekta uwzględniająca wygięcie segmentu tibia
+TIBIA_OFFSET = -30.0  # korekta uwzględniająca wygięcie segmentu tibia
+FEMUR_OFFSET = 25  # korekta uwzględniająca wygięcie segmentu femur
 
 # --- Serwa i kalibracja ---
 
@@ -103,12 +104,12 @@ LEG_PHASE_OFFSET = {
 
 # Wybór chodu i część cyklu spędzona z nogą w powietrzu.
 GAITS = {
-    "trot": {"swing_ratio": 0.3, "phase_offsets": LEG_PHASE_OFFSET},
+    "trot": {"swing_ratio": 0.5, "phase_offsets": LEG_PHASE_OFFSET},
     "crawl": {
         "swing_ratio": 0.25,
         # Przesunięcie korpusu przeciwnie do unoszonej nogi [mm]:
         # (przód/tył, lewo/prawo). (0.0, 0.0) wyłącza efekt.
-        "body_shift": (20.0, 20.0),
+        "body_shift": (30.0, 30.0),
         "phase_offsets": {"lf": 0.0, "lr": 0.25, "rf": 0.5, "rr": 0.75},
     },
 }

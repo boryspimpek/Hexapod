@@ -10,7 +10,7 @@ Konwencja osi (WAŻNE):
 
 import math
 
-from .config import COXA_ZERO, TIBIA_OFFSET
+from .config import COXA_ZERO, TIBIA_OFFSET, FEMUR_OFFSET
 
 def inverse_kinematics(x, y, z, l_coxa, l_femur, l_tibia, *, mount_angle=0.0):
     """
@@ -57,7 +57,7 @@ def inverse_kinematics(x, y, z, l_coxa, l_femur, l_tibia, *, mount_angle=0.0):
         COXA_ZERO + math.degrees(theta_coxa_rad) - mount_angle,
 
         #### FEMUR: ####
-        math.degrees(theta_femur_rad),
+        math.degrees(theta_femur_rad) - FEMUR_OFFSET,  # Korekta uwzględniająca montaż i mechanikę
 
         #### TIBIA: ####
         # Tibia jest zamontowana w taki sposób, że jej kąt 0 lub 180 stopni nie jest w pełni wyprostowany, 
@@ -69,7 +69,8 @@ def inverse_kinematics(x, y, z, l_coxa, l_femur, l_tibia, *, mount_angle=0.0):
 def forward_kinematics(angles, l_coxa, l_femur, l_tibia, *, mount_angle=0.0):
     """Punkty stawów w osiach celu IK, z obrotem mocowania w stopniach."""
     coxa = math.radians(angles[0] - COXA_ZERO + mount_angle)
-    femur, tibia = map(math.radians, angles[1:])
+    femur = math.radians(angles[1] + FEMUR_OFFSET)
+    tibia = math.radians(angles[2])    
     radial = (math.sin(coxa), math.cos(coxa))
     knee_direction = femur - tibia + math.radians(TIBIA_OFFSET)
     a = (l_coxa * radial[0], l_coxa * radial[1], 0)
