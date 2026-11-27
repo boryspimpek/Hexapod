@@ -164,8 +164,13 @@ def main_loop(controller, sock):
     last_angles = send_frame(sock, calculate_frame())
     transition_start_angles = None
     transition_start_time = None
-    last_limit_report = float("-inf")
     last_time = time.monotonic()
+
+    # Zbieranie zdarzeń limitów w całym interwale raportowania.
+    last_limit_report = last_time
+    limit_events = {}   # servo_id -> statystyki z bieżącego interwału
+    limit_frames = 0    # liczba klatek w bieżącym interwale
+
     while True:
         current_time = time.monotonic()
         elapsed = current_time - last_time
@@ -190,14 +195,35 @@ def main_loop(controller, sock):
         was_moving = state["ramp"] > 0
         next_state, frame, accepted_height, accepted_shift, accepted_tilt = (
             calculate_motion_step(state, command, elapsed, controls))
-        limited_angles = find_limited_servo_angles(frame)
-        if limited_angles and current_time - last_limit_report >= SERVO_LIMIT_REPORT_INTERVAL:
-            details = "; ".join(
-                f"ID {servo_id} ({leg_name}/{joint}): {requested:.1f}° -> {limited:.1f}° "
-                f"(limit {lo}–{hi}°)"
-                for servo_id, leg_name, joint, requested, limited, lo, hi in limited_angles)
-            print(f"Serwa ograniczone do limitów: {details}")
+
+        # Zbieramy limity z każdej klatki, a raportujemy raz na interwał.
+        limit_frames += 1
+        for servo_id, leg_name, joint, requested, limited, lo, hi in find_limited_servo_angles(frame):
+            overshoot = abs(requested - limited)
+            ev = limit_events.get(servo_id)
+            if ev is None:
+                limit_events[servo_id] = {
+                    "leg": leg_name, "joint": joint, "count": 1,
+                    "max": overshoot, "requested": requested,
+                    "limited": limited, "lo": lo, "hi": hi,
+                }
+            else:
+                ev["count"] += 1
+                if overshoot > ev["max"]:
+                    ev.update(max=overshoot, requested=requested, limited=limited)
+
+        if current_time - last_limit_report >= SERVO_LIMIT_REPORT_INTERVAL:
+            if limit_events:
+                details = "; ".join(
+                    f"ID {sid} ({ev['leg']}/{ev['joint']}): "
+                    f"max {ev['requested']:.1f}° -> {ev['limited']:.1f}° "
+                    f"(limit {ev['lo']}–{ev['hi']}°), {ev['count']}/{limit_frames} klatek"
+                    for sid, ev in sorted(limit_events.items()))
+                print(f"Serwa ograniczone do limitów: {details}")
+            limit_events.clear()
+            limit_frames = 0
             last_limit_report = current_time
+
         controls.body_shift = accepted_shift
         controls.body_tilt = accepted_tilt
         if accepted_height != controls.z_height:
@@ -224,7 +250,6 @@ def main_loop(controller, sock):
         # if was_moving or state["ramp"] > 0:
         #     print(f"gait_phase: {phase:.3f}, ramp: {state['ramp']:.3f}, angles: {angles}")
         time.sleep(cfg.LOOP_INTERVAL)
-
 
 def main():
     controller = open_controller()
