@@ -20,8 +20,8 @@ def limit_angle(servo_id, angle_deg):
     return max(lo, min(hi, angle_deg))
 
 
-def remove_offsets(servo_id, command):
-    """Odtwarza kąt w konwencji IK/FK z komendy serwa."""
-    data = JOINTS[servo_id]
-    angle = command - data[TRIM]
-    return 180 - angle if data[INVERTED] else angle
+# def remove_offsets(servo_id, command):
+#     """Odtwarza kąt w konwencji IK/FK z komendy serwa."""
+#     data = JOINTS[servo_id]
+#     angle = command - data[TRIM]
+#     return 180 - angle if data[INVERTED] else angle

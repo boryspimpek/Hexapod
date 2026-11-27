@@ -227,6 +227,40 @@ th {
   border-bottom: 1px solid var(--line);
 }
 
+.angle-legend {
+  margin: -7px 0 8px !important;
+  color: var(--muted) !important;
+  font-size: 10px;
+}
+
+#tbl td.angle-cell {
+  vertical-align: top;
+  white-space: nowrap;
+  line-height: 1.3;
+  font-size: 11px;
+}
+
+.angle-before,
+.angle-after,
+.angle-delta {
+  display: block;
+}
+
+.angle-before,
+.angle-delta {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.angle-after {
+  color: var(--text);
+}
+
+.angle-cell.limited .angle-after,
+.angle-cell.limited .angle-delta {
+  color: var(--warning);
+}
+
 .parameter-row {
   display: grid;
   grid-template-columns: 1fr auto;

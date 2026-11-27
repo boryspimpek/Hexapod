@@ -14,7 +14,6 @@ from pathlib import Path
 
 from robot import config as cfg
 from robot.kinematics import forward_kinematics
-from robot.servos import apply_offsets, remove_offsets
 from robot.motion import step_motion, JOINT_NAMES
 from robot.body import body_center, pose_point
 from robot.odometry import read_odometry, advance_odometry
@@ -135,10 +134,18 @@ def simulate(data):
         geometric, limited = [], []
         for joint, raw in zip(JOINT_NAMES, leg["raw_angles"]):
             spec = cfg.LEGS[name][joint]
-            command = leg["servo_angles"][joint]
-            limited.append(abs(command - apply_offsets(spec[cfg.SERVO_ID], raw)) > 1e-8)
-            geometric.append(remove_offsets(spec[cfg.SERVO_ID], command))
+            inverted = spec[cfg.INVERTED]
+            # Symulator: bez trimu, z oryginalnymi (zmierzonymi) limitami.
+            requested = 180.0 - raw if inverted else raw
+            lo, hi = cfg.MEASURED_LIMITS[spec[cfg.SERVO_ID]]
+            command = max(lo, min(hi, requested))
+            limited.append(abs(command - requested) > 1e-8)
+            geometric.append(180.0 - command if inverted else command)
+            # Keep the simulator frame consistent with the no-trim preview.
+            leg["servo_angles"][joint] = command
+            frame["servos"][spec[cfg.SERVO_ID]] = command
         leg["points"] = joint_points(name, geometric, body_offset, body_rotation)
+        leg["requested_angles"] = dict(zip(JOINT_NAMES, leg["raw_angles"]))
         leg["geometric_angles"] = dict(zip(JOINT_NAMES, geometric))
         leg["target_world"] = world_point(name, leg["target"], body_offset, body_rotation)
         leg["limited"] = limited

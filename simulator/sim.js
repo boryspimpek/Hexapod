@@ -218,7 +218,9 @@ followCamera.addEventListener("change", () => {
 });
 Object.values(LEGS).forEach(leg => {
   const row = document.createElement("tr");
-  row.innerHTML = `<td>${leg.n.toUpperCase()}</td><td></td><td></td><td></td>`;
+  row.innerHTML = `<td>${leg.n.toUpperCase()}</td>${Array.from({length: 3}, () =>
+    '<td class="angle-cell"><span class="angle-before"></span><span class="angle-after"></span><span class="angle-delta"></span></td>'
+  ).join("")}`;
   document.querySelector("#tbl tbody").appendChild(row);
   leg.tableRow = row;
   leg.target = new THREE.Mesh(new THREE.SphereGeometry(11, 12, 8),
@@ -289,8 +291,13 @@ function drawFrame(frame) {
       leg.joints[i].position.copy(points[i]);
       const cell = leg.tableRow.children[i + 1];
       const jointName = ["coxa", "femur", "tibia"][i];
-      cell.textContent = result.geometric_angles[jointName].toFixed(1);
-      cell.style.color = result.limited[i] ? "var(--warning)" : "";
+      const requested = result.requested_angles[jointName];
+      const limitedAngle = result.geometric_angles[jointName];
+      const delta = limitedAngle - requested;
+      cell.querySelector(".angle-before").textContent = requested.toFixed(1);
+      cell.querySelector(".angle-after").textContent = `→ ${limitedAngle.toFixed(1)}`;
+      cell.querySelector(".angle-delta").textContent = `Δ ${delta > 0 ? "+" : ""}${delta.toFixed(1)}°`;
+      cell.classList.toggle("limited", result.limited[i]);
     }
     const limited = result.limited.some(Boolean);
     limitedCount += Number(limited);

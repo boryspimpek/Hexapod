@@ -62,32 +62,50 @@ FEMUR_OFFSET = 15.0  # korekta uwzględniająca wygięcie segmentu femur
 #################################################### --- Serwa i kalibracja --- ####################################################################
 
 # Indeksy pól w krotce (servo_id, inverted, limits, trim).
+# femury: limity zwężone do wspólnego zakresu logicznego 47-183 (oryg. 40-180 / 0-140),
+# zależą od trimów, po zmianie trimu przelicz.
 SERVO_ID, INVERTED, LIMITS, TRIM = 0, 1, 2, 3
 
 LEGS = {
     'lf': {
         'coxa':  (1,  True,  (35, 160),  0.0),
-        'femur': (2,  False, (40, 180), -7.0),
+        'femur': (2,  False, (40, 176), -7.0),
         'tibia': (3,  False, (0, 150),   0.0),
     },
     'rf': {
         'coxa':  (4,  False, (20, 145),  0.0),
-        'femur': (5,  True,  (0, 140),    3.0),
+        'femur': (5,  True,  (0, 136),    3.0),
         'tibia': (6,  True,  (30, 180),  0.0),
     },
     'lr': {
         'coxa':  (7,  True,  (20, 145),  0.0),
-        'femur': (8,  True,  (0, 140),    5.0),
+        'femur': (8,  True,  (2, 138),    5.0),
         'tibia': (9,  True,  (30, 180),  0.0),
     },
     'rr': {
         'coxa':  (10, False, (35, 160),  0.0),
-        'femur': (11, False, (40, 180), -6.0),
+        'femur': (11, False, (41, 177), -6.0),
         'tibia': (12, False, (0, 150),   0.0),
     },
 }
 
-
+# Zmierzone (oryginalne) limity wszystkich serw, w przestrzeni serwa, bez trimów.
+# Używa ich symulator. Limity w LEGS mogą być z nich pochodną (np. femury
+# zwężone pod trimy), a przy zmianie trimu przeliczasz je właśnie z tej tabeli.
+MEASURED_LIMITS = {
+    1:  (35, 160),   # lf coxa
+    2:  (40, 180),   # lf femur
+    3:  (0, 150),    # lf tibia
+    4:  (20, 145),   # rf coxa
+    5:  (0, 140),    # rf femur
+    6:  (30, 180),   # rf tibia
+    7:  (20, 145),   # lr coxa
+    8:  (0, 140),    # lr femur
+    9:  (30, 180),   # lr tibia
+    10: (35, 160),   # rr coxa
+    11: (40, 180),   # rr femur
+    12: (0, 150),    # rr tibia
+}
 
 
 ###################################################### --- Geometria --- ####################################################################
