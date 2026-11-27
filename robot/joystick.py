@@ -1,7 +1,7 @@
 """Obsługa pada PS4. Diagnostyka: python -m robot.joystick."""
 import math
 from .config import (CONTROLLER_DEADZONE, DPAD_UP_BUTTON, DPAD_DOWN_BUTTON,
-                     LEFT_STICK_X_AXIS, LEFT_STICK_Y_AXIS,
+                     LEFT_STICK_X_AXIS, LEFT_STICK_Y_AXIS, REST_BUTTON, WALK_BUTTON,
                      RIGHT_STICK_X_AXIS, RIGHT_STICK_Y_AXIS, R1_BUTTON, GAIT_BUTTON)
 
 
@@ -51,6 +51,16 @@ def get_r1(controller):
 def get_gait_button(controller):
     """X / krzyżyk; wywołuj po get_left_stick (event.pump)."""
     return 0 <= GAIT_BUTTON < controller.get_numbuttons() and bool(controller.get_button(GAIT_BUTTON))
+
+def get_rest_button(controller):
+    """O / kółko; wywołuj po get_left_stick (event.pump)."""
+    count = controller.get_numbuttons()
+    return isinstance(count, int) and 0 <= REST_BUTTON < count and bool(controller.get_button(REST_BUTTON))
+
+def get_walk_button(controller):
+    """Kwadrat; wywołuj po get_left_stick (event.pump)."""
+    count = controller.get_numbuttons()
+    return isinstance(count, int) and 0 <= WALK_BUTTON < count and bool(controller.get_button(WALK_BUTTON))
 
 
 def get_dpad_vertical(controller):

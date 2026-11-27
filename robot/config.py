@@ -18,6 +18,9 @@ p_start = {
     'rr': (x_offset_rear, y_offset_rear, z_height),
 }
 
+
+
+
 # --- Parametry kroku i rodzaje chodu ---
 
 trot_gait_speed = 1.0  # liczba cykli chodu na sekundę
@@ -35,14 +38,23 @@ BODY_SHIFT_MAX = 60.0  # przesunięcie na oś przy pełnym wychyleniu prawego dr
 BODY_TILT_MAX = 20.0  # przechył na oś przy pełnym wychyleniu lewego drążka z R1 [°]
 
 HEIGHT_STEP = 5.0  # zmiana wysokości na naciśnięcie D-pada [mm]
-HEIGHT_LIMITS = (-110.0, -20.0)  # zakres z_height podczas sterowania [mm]
+HEIGHT_LIMITS = (-110.0, 40.0)  # zakres z_height podczas sterowania [mm]
 
 ramp_time = 0.25  # czas narastania/zanikania prędkości chodu [s]
 
-# Przesunięcia wynikające z montażu i mechaniki, dodawane do kątów z kinematyki.
+REST_HEIGHT = 40.0  # wysokość spoczynkowa [mm]
+
+
+
+
+# --- Przesunięcia wynikające z montażu i mechaniki, dodawane do kątów z kinematyki ---
+
 COXA_ZERO = 90.0  # przesunięcie coxa, aby 0° było wzdłuż osi robota
 TIBIA_OFFSET = -29.0  # korekta uwzględniająca wygięcie segmentu tibia
 FEMUR_OFFSET = 25  # korekta uwzględniająca wygięcie segmentu femur
+
+
+
 
 # --- Serwa i kalibracja ---
 
@@ -72,6 +84,9 @@ LEGS = {
     },
 }
 
+
+
+
 # --- Geometria ---
 
 # Punkty mocowania coxa w układzie robota (x, y, z) [mm].
@@ -91,6 +106,9 @@ COXA_MOUNT_ANGLES = {
     "lr": -45.0,
     "rr": -45.0,
 }
+
+
+
 
 # --- Gaits ---
 
@@ -118,12 +136,17 @@ DEFAULT_GAIT = "trot"
 GAIT_CYCLE = ("trot", "crawl")
 
 
+
+
 # --- Komunikacja i pętla sterowania ---
 
 ESP = ("192.168.0.115", 8888)
 LOOP_INTERVAL = 0.02  # odstęp między iteracjami pętli [s]
 
 ACTIVE_SERVO_IDS = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
+
+
+
 
 # --- Kontroler: osie i przyciski ---
 
@@ -136,6 +159,8 @@ RIGHT_STICK_X_AXIS = 2
 RIGHT_STICK_Y_AXIS = 3
 
 GAIT_BUTTON = 0  # X / krzyżyk PS4; sprawdź indeks: python -m robot.joystick
+REST_BUTTON = 1  # O / kółko PS4; sprawdź indeks: python -m robot.joystick
+WALK_BUTTON = 2  # kwadrat PS4; sprawdź indeks: python -m robot.joystick
 R1_BUTTON = 10  # indeks pygame na tym kontrolerze; w przeglądarce: przycisk 5
 
 # D-pad jako przyciski (wariant zapasowy, gdy sterownik nie udostępnia hat).

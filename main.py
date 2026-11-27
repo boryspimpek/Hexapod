@@ -3,7 +3,8 @@ from dataclasses import dataclass
 import time
 from robot import config as cfg
 from robot.joystick import (open_controller, get_left_stick, get_right_stick,
-                            get_dpad_vertical, get_r1, get_gait_button, close_controller)
+                            get_dpad_vertical, get_r1, get_gait_button,
+                            get_rest_button, get_walk_button, close_controller)
 from robot.gait import next_gait
 from robot.motion import calculate_frame, initial_state, step_motion
 from robot.transport import open_socket, send_servos
@@ -29,10 +30,11 @@ class ControlState:
     body_shift: tuple = (0.0, 0.0)
     body_tilt: tuple = (0.0, 0.0)
     previous_dpad: int = 0
+    previous_rest_button: bool = False
 
 
 def read_motion_command(controller, state, controls):
-    """Odczytaj drążki i D-pad, a następnie zmapuj je na komendę ruchu."""
+    """Odczytaj sterowanie i zmapuj je na komendę ruchu."""
     stick_x, stick_y = get_left_stick(controller)
     right_x, right_y = get_right_stick(controller)
     shifting = get_r1(controller)
@@ -52,6 +54,11 @@ def read_motion_command(controller, state, controls):
         lo, hi = cfg.HEIGHT_LIMITS
         requested_height = max(lo, min(hi, controls.z_height - dpad * cfg.HEIGHT_STEP))
     controls.previous_dpad = dpad
+
+    rest_button = get_rest_button(controller)
+    if rest_button and not controls.previous_rest_button:
+        requested_height = cfg.REST_HEIGHT
+    controls.previous_rest_button = rest_button
 
     command = MotionCommand(
         x=stick_x, y=stick_y, turn=turn, z_height=requested_height,
@@ -100,6 +107,7 @@ def main_loop(controller, sock):
     state = initial_state()
     controls = ControlState()
     previous_gait_button = False
+    previous_walk_button = False
     send_frame(sock, calculate_frame())
     last_time = time.monotonic()
     while True:
@@ -112,6 +120,15 @@ def main_loop(controller, sock):
             state = {**state, "requested_gait": next_gait(state["requested_gait"])}
             print(f"Wybrano gait: {state['requested_gait']}")
         previous_gait_button = gait_button
+        walk_button = get_walk_button(controller)
+        reset_to_initial = walk_button and not previous_walk_button
+        previous_walk_button = walk_button
+        if reset_to_initial:
+            state = initial_state()
+            command = MotionCommand(
+                x=0.0, y=0.0, turn=0.0, z_height=cfg.z_height,
+                body_x=0.0, body_y=0.0, body_roll=0.0, body_pitch=0.0,
+            )
         phase = state["phase"]
         was_moving = state["ramp"] > 0
         next_state, frame, accepted_height, accepted_shift, accepted_tilt = (
@@ -121,6 +138,8 @@ def main_loop(controller, sock):
         if accepted_height != controls.z_height:
             controls.z_height = accepted_height
             print(f"z_height: {controls.z_height:.1f} mm")
+        if reset_to_initial:
+            print("Przywrócono pozycję początkową.")
         state = next_state
         angles = send_frame(sock, frame)
         # if was_moving or state["ramp"] > 0:

@@ -100,6 +100,10 @@ stride in the config or simulator to test walking.
 D-pad up/down (or up/down arrows without Shift in the simulator) changes
 `z_height` by `HEIGHT_STEP` per press within `HEIGHT_LIMITS`, like on the robot.
 Holding a direction does not repeat the change; release and press again.
+On the robot, the circle button (`REST_BUTTON`) sets `z_height` to `REST_HEIGHT`
+on each new press; holding it does not repeat the action.
+The square button (`WALK_BUTTON`) returns the robot to its startup pose on each
+new press, including the configured `z_height` and default gait state.
 `BODY_SHIFT_MAX` sets the maximum translation per axis in millimeters (20 mm
 by default). This translation is added independently of the baseline foot
 offsets and can also be used while walking.
