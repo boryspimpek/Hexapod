@@ -26,7 +26,7 @@ PARAMETER_SPECS = {
     "crawl_gait_speed": {"min": 0, "max": 5, "step": 0.05, "unit": "Hz"},
     "step_length": {"min": 0, "max": 250, "step": 1, "unit": "mm"},
     "step_height": {"min": 0, "max": 100, "step": 1, "unit": "mm"},
-    "turn_step_angle": {"min": 0, "max": 30, "step": 0.5, "unit": "deg"},
+    # "turn_step_angle": {"min": 0, "max": 30, "step": 0.5, "unit": "deg"},
     "z_height": {"min": -200, "max": 200, "step": 1, "unit": "mm"},
     "x_offset_front": {"min": -150, "max": 150, "step": 1, "unit": "mm"},
     "y_offset_front": {"min": 50, "max": 250, "step": 1, "unit": "mm"},
@@ -75,6 +75,14 @@ def simulate(data):
         spec = PARAMETER_SPECS[name]
         if not math.isfinite(value) or not spec["min"] <= value <= spec["max"]:
             raise ValueError(f"{name}: wymagany zakres {spec['min']}–{spec['max']}")
+    # The simulator exposes front offsets only; mirror them to the rear pair
+    # unless an API caller explicitly supplies a rear offset.
+    derived_rear_offsets = {}
+    if "x_offset_front" in data and "x_offset_rear" not in data:
+        derived_rear_offsets["x_offset_rear"] = -parameters["x_offset_front"]
+    if "y_offset_front" in data and "y_offset_rear" not in data:
+        derived_rear_offsets["y_offset_rear"] = parameters["y_offset_front"]
+    parameters.update(derived_rear_offsets)
     values = {key: float(data.get(key, default)) for key, default in
               (("phase", 0), ("ramp", 0), ("elapsed", 0.02), ("x", 0), ("y", 0),
                ("right_x", 0), ("right_y", 0), ("turn", 0))}
@@ -105,6 +113,7 @@ def simulate(data):
     # Omitted XY overrides retain each leg's configured starting position.
     motion_parameters = {name: value for name, value in parameters.items()
                          if "_offset_" not in name or name in data}
+    motion_parameters.update(derived_rear_offsets)
     controls = dict(body_x=values["right_y"] * cfg.BODY_SHIFT_MAX if shifting else 0.0,
                     body_y=values["right_x"] * cfg.BODY_SHIFT_MAX if shifting else 0.0,
                     body_roll=values["y"] * cfg.BODY_TILT_MAX if shifting else 0.0,

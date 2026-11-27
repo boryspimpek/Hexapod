@@ -117,8 +117,9 @@ this setting. The browser uses standard gamepad button 5 for R1.
 The "Gait parameters" panel lets you adjust `trot_gait_speed` and `crawl_gait_speed`,
 `step_length`, `step_height`, `turn_step_angle`, and `z_height` live.
 `z_height` sets a shared baseline.
-The `x_offset_front`, `y_offset_front`, `x_offset_rear`, and `y_offset_rear`
-sliders set the baseline foot coordinates for the front and rear leg pairs (in mm).
+The simulator has two foot-offset sliders: `x_offset_front` mirrors its value
+to the rear pair with the opposite sign, and `y_offset_front` applies the same
+value to both pairs. The rear coordinates are derived automatically.
 Configuration changes require restarting the server. JavaScript
 only draws the received points and has no IK solver or gait generator of its own.
 

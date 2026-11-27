@@ -9,8 +9,8 @@ l_coxa, l_femur, l_tibia = 40.0, 80.0, 134.0
 z_height = -70
 x_offset_front = 100
 y_offset_front = 100
-x_offset_rear = -100
-y_offset_rear = 100
+x_offset_rear = - x_offset_front
+y_offset_rear = y_offset_front
 p_start = {
     'lf': (x_offset_front, y_offset_front, z_height),
     'rf': (x_offset_front, y_offset_front, z_height),

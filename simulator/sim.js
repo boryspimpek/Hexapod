@@ -173,12 +173,16 @@ async function loadParameters() {
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const specs = await response.json();
   for (const [name, spec] of Object.entries(specs)) {
+    if (name === "x_offset_rear" || name === "y_offset_rear") continue;
     parameters[name] = spec.default;
     const row = document.createElement("div");
     row.className = "parameter-row";
     const label = document.createElement("label");
     label.htmlFor = name;
-    label.textContent = name;
+    label.textContent = ({
+      x_offset_front: "X offset (front/rear mirrored)",
+      y_offset_front: "Y offset (front/rear equal)",
+    })[name] || name;
     const output = document.createElement("output");
     output.htmlFor = name;
     const input = document.createElement("input");
