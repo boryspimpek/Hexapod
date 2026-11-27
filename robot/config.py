@@ -6,7 +6,7 @@
 l_coxa, l_femur, l_tibia = 40.0, 80.0, 134.0
 
 # Współrzędne (x, y, z) [mm] w lokalnym układzie danej nogi.
-z_height = -70
+z_height = -50
 x_offset_front = 100
 y_offset_front = 100
 x_offset_rear = - x_offset_front
@@ -29,7 +29,7 @@ crawl_gait_speed = 0.25  # liczba cykli chodu na sekundę
 step_length = 120.0  # maksymalna długość kroku [mm]
 MIN_STEP_LENGTH = 20.0  # minimalna długość kroku przy aktywnym ruchu [mm]
 
-step_height = 40.0  # wysokość unoszenia stopy [mm]
+step_height = 60.0  # wysokość unoszenia stopy [mm]
 
 turn_step_angle = 30.0  # obrót na cykl chodu przy pełnym wychyleniu drążka [°]
 MIN_TURN_STEP_ANGLE = 10.0  # minimalny obrót na cykl chodu przy aktywnym ruchu [°]
