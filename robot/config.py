@@ -3,7 +3,7 @@
 # --- Geometria nóg i mocowań ---
 
 # Długości segmentów nogi [mm].
-l_coxa, l_femur, l_tibia = 40.0, 80.0, 134.0
+l_coxa, l_femur, l_tibia = 40.0, 80.0, 121.25
 
 # Współrzędne (x, y, z) [mm] w lokalnym układzie danej nogi.
 z_height = -50
@@ -43,7 +43,7 @@ HEIGHT_LIMITS = (-110.0, 40.0)  # zakres z_height podczas sterowania [mm]
 
 ramp_time = 0.25  # czas narastania/zanikania prędkości chodu [s]
 
-REST_HEIGHT = 40.0  # wysokość spoczynkowa [mm]
+REST_HEIGHT = 0.0  # wysokość spoczynkowa [mm]
 
 POSE_TRANSITION_SECONDS = 1.0  # czas płynnego przejścia po REST/WALK [s]
 
@@ -53,8 +53,8 @@ POSE_TRANSITION_SECONDS = 1.0  # czas płynnego przejścia po REST/WALK [s]
 ########################### --- Przesunięcia wynikające z montażu i mechaniki, dodawane do kątów z kinematyki --- ####################################################
 
 COXA_ZERO = 90.0  # przesunięcie coxa, aby 0° było wzdłuż osi robota
-TIBIA_OFFSET = -29.0  # korekta uwzględniająca wygięcie segmentu tibia
-FEMUR_OFFSET = 25  # korekta uwzględniająca wygięcie segmentu femur
+TIBIA_OFFSET = -20.0  # korekta uwzględniająca wygięcie segmentu tibia
+FEMUR_OFFSET = 15.0  # korekta uwzględniająca wygięcie segmentu femur
 
 
 

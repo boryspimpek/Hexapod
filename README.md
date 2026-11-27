@@ -313,6 +313,8 @@ to 0.1 degrees. The ESP receiver must be configured to listen at the address
 specified in `ESP` and understand this format. The HTML simulator does not send
 commands to the robot. Configuration changes take effect after restarting the
 robot program or the simulator server.
+When a servo angle is clipped by its configured limit, the hardware loop prints
+the requested angle, clipped angle, and limit in the terminal at most once per second.
 
 ## Code Organization
 

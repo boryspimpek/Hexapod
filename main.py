@@ -7,8 +7,11 @@ from robot.joystick import (open_controller, get_left_stick, get_right_stick,
                             get_dpad_vertical, get_r1, get_gait_button,
                             get_rest_button, get_walk_button, close_controller)
 from robot.gait import next_gait
-from robot.motion import calculate_frame, initial_state, step_motion
+from robot.motion import JOINT_NAMES, calculate_frame, initial_state, step_motion
+from robot.servos import apply_offsets
 from robot.transport import open_socket, send_servos
+
+SERVO_LIMIT_REPORT_INTERVAL = 1.0
 
 
 @dataclass(frozen=True)
@@ -109,6 +112,22 @@ def interpolate_servo_angles(start_angles, target_angles, progress):
     }
 
 
+def find_limited_servo_angles(frame):
+    """Zwróć kąty, które zostały obcięte do limitu serwa."""
+    limited = []
+    for leg_name, leg in frame["legs"].items():
+        for joint, raw_angle in zip(JOINT_NAMES, leg["raw_angles"]):
+            servo_id = cfg.LEGS[leg_name][joint][cfg.SERVO_ID]
+            if servo_id not in cfg.ACTIVE_SERVO_IDS:
+                continue
+            requested = apply_offsets(servo_id, raw_angle)
+            limited_angle = leg["servo_angles"][joint]
+            if abs(requested - limited_angle) > 1e-8:
+                lo, hi = cfg.LEGS[leg_name][joint][cfg.LIMITS]
+                limited.append((servo_id, leg_name, joint, requested, limited_angle, lo, hi))
+    return limited
+
+
 def calculate_motion_step(state, command, elapsed, controls):
     """Oblicz klatkę; przy niedostępnej pozycji korpusu zachowaj poprzednią."""
     requested_shift = (command.body_x, command.body_y)
@@ -145,6 +164,7 @@ def main_loop(controller, sock):
     last_angles = send_frame(sock, calculate_frame())
     transition_start_angles = None
     transition_start_time = None
+    last_limit_report = float("-inf")
     last_time = time.monotonic()
     while True:
         current_time = time.monotonic()
@@ -170,6 +190,14 @@ def main_loop(controller, sock):
         was_moving = state["ramp"] > 0
         next_state, frame, accepted_height, accepted_shift, accepted_tilt = (
             calculate_motion_step(state, command, elapsed, controls))
+        limited_angles = find_limited_servo_angles(frame)
+        if limited_angles and current_time - last_limit_report >= SERVO_LIMIT_REPORT_INTERVAL:
+            details = "; ".join(
+                f"ID {servo_id} ({leg_name}/{joint}): {requested:.1f}° -> {limited:.1f}° "
+                f"(limit {lo}–{hi}°)"
+                for servo_id, leg_name, joint, requested, limited, lo, hi in limited_angles)
+            print(f"Serwa ograniczone do limitów: {details}")
+            last_limit_report = current_time
         controls.body_shift = accepted_shift
         controls.body_tilt = accepted_tilt
         if accepted_height != controls.z_height:
