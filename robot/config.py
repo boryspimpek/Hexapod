@@ -21,7 +21,7 @@ p_start = {
 
 
 
-# --- Parametry kroku i rodzaje chodu ---
+################################################### --- Parametry kroku i rodzaje chodu --- ####################################################
 
 trot_gait_speed = 1.0  # liczba cykli chodu na sekundę
 crawl_gait_speed = 0.25  # liczba cykli chodu na sekundę
@@ -47,7 +47,7 @@ REST_HEIGHT = 40.0  # wysokość spoczynkowa [mm]
 
 
 
-# --- Przesunięcia wynikające z montażu i mechaniki, dodawane do kątów z kinematyki ---
+########################### --- Przesunięcia wynikające z montażu i mechaniki, dodawane do kątów z kinematyki --- ####################################################
 
 COXA_ZERO = 90.0  # przesunięcie coxa, aby 0° było wzdłuż osi robota
 TIBIA_OFFSET = -29.0  # korekta uwzględniająca wygięcie segmentu tibia
@@ -56,7 +56,7 @@ FEMUR_OFFSET = 25  # korekta uwzględniająca wygięcie segmentu femur
 
 
 
-# --- Serwa i kalibracja ---
+#################################################### --- Serwa i kalibracja --- ####################################################################
 
 # Indeksy pól w krotce (servo_id, inverted, limits, trim).
 SERVO_ID, INVERTED, LIMITS, TRIM = 0, 1, 2, 3
@@ -87,7 +87,7 @@ LEGS = {
 
 
 
-# --- Geometria ---
+###################################################### --- Geometria --- ####################################################################
 
 # Punkty mocowania coxa w układzie robota (x, y, z) [mm].
 # Używane do wizualizacji i geometrii skrętu (środek i promienie stóp).
@@ -110,7 +110,7 @@ COXA_MOUNT_ANGLES = {
 
 
 
-# --- Gaits ---
+######################################################## --- Gaits --- ##################################################################
 
 # Przesunięcia faz nóg dla chodu trot.
 LEG_PHASE_OFFSET = {
@@ -138,7 +138,7 @@ GAIT_CYCLE = ("trot", "crawl")
 
 
 
-# --- Komunikacja i pętla sterowania ---
+################################################## --- Komunikacja i pętla sterowania --- ####################################################
 
 ESP = ("192.168.0.115", 8888)
 LOOP_INTERVAL = 0.02  # odstęp między iteracjami pętli [s]
@@ -148,7 +148,7 @@ ACTIVE_SERVO_IDS = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
 
 
 
-# --- Kontroler: osie i przyciski ---
+####################################################### --- Kontroler: osie i przyciski --- ####################################################
 
 CONTROLLER_DEADZONE = 0.15
 stick_deadzone = 0.0  # strefa martwa joysticka
