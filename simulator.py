@@ -28,10 +28,10 @@ PARAMETER_SPECS = {
     "step_height": {"min": 0, "max": 100, "step": 1, "unit": "mm"},
     # "turn_step_angle": {"min": 0, "max": 30, "step": 0.5, "unit": "deg"},
     "z_height": {"min": -200, "max": 200, "step": 1, "unit": "mm"},
-    "x_offset_front": {"min": -150, "max": 150, "step": 1, "unit": "mm"},
+    "x_offset_front": {"min": 0, "max": 150, "step": 1, "unit": "mm"},
     "y_offset_front": {"min": 50, "max": 250, "step": 1, "unit": "mm"},
-    "x_offset_rear": {"min": -150, "max": 150, "step": 1, "unit": "mm"},
-    "y_offset_rear": {"min": 50, "max": 250, "step": 1, "unit": "mm"},
+    # "x_offset_rear": {"min": -150, "max": 150, "step": 1, "unit": "mm"},
+    # "y_offset_rear": {"min": 50, "max": 250, "step": 1, "unit": "mm"},
 }
 
 
