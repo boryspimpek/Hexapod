@@ -36,6 +36,7 @@ MIN_TURN_STEP_ANGLE = 10.0  # minimalny obrót na cykl chodu przy aktywnym ruchu
 
 BODY_SHIFT_MAX = 60.0  # przesunięcie na oś przy pełnym wychyleniu prawego drążka [mm]
 BODY_TILT_MAX = 20.0  # przechył na oś przy pełnym wychyleniu lewego drążka z R1 [°]
+BODY_POSE_SMOOTHING_SECONDS = 0.30  # stała czasowa wygładzania body_shift/body_tilt [s]
 
 HEIGHT_STEP = 5.0  # zmiana wysokości na naciśnięcie D-pada [mm]
 HEIGHT_LIMITS = (-110.0, 40.0)  # zakres z_height podczas sterowania [mm]
@@ -43,6 +44,8 @@ HEIGHT_LIMITS = (-110.0, 40.0)  # zakres z_height podczas sterowania [mm]
 ramp_time = 0.25  # czas narastania/zanikania prędkości chodu [s]
 
 REST_HEIGHT = 40.0  # wysokość spoczynkowa [mm]
+
+POSE_TRANSITION_SECONDS = 1.0  # czas płynnego przejścia po REST/WALK [s]
 
 
 

@@ -104,9 +104,15 @@ On the robot, the circle button (`REST_BUTTON`) sets `z_height` to `REST_HEIGHT`
 on each new press; holding it does not repeat the action.
 The square button (`WALK_BUTTON`) returns the robot to its startup pose on each
 new press, including the configured `z_height` and default gait state.
+Both preset moves use a smooth transition lasting `POSE_TRANSITION_SECONDS`
+(1 second by default); adjust that setting in `robot/config.py` to change the duration.
 `BODY_SHIFT_MAX` sets the maximum translation per axis in millimeters (20 mm
 by default). This translation is added independently of the baseline foot
 offsets and can also be used while walking.
+On the robot, with R1 held, `body_shift` and `body_tilt` follow the sticks
+through an exponential smoothing filter. `BODY_POSE_SMOOTHING_SECONDS` in
+`robot/config.py` sets its time constant; a larger value gives a smoother,
+slower response.
 All hardware stick axis indices are in `robot/config.py`:
 `LEFT_STICK_X_AXIS` and `LEFT_STICK_Y_AXIS` (0 and 1 by default), and
 `RIGHT_STICK_X_AXIS` and `RIGHT_STICK_Y_AXIS` (2 and 3 by default).

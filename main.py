@@ -1,5 +1,6 @@
 """Uruchomienie sterowania robotem: python main.py."""
 from dataclasses import dataclass
+import math
 import time
 from robot import config as cfg
 from robot.joystick import (open_controller, get_left_stick, get_right_stick,
@@ -21,6 +22,7 @@ class MotionCommand:
     body_y: float
     body_roll: float
     body_pitch: float
+    slow_pose_transition: bool = False
 
 
 @dataclass
@@ -33,17 +35,32 @@ class ControlState:
     previous_rest_button: bool = False
 
 
-def read_motion_command(controller, state, controls):
+def smooth_toward(current, target, elapsed, time_constant):
+    """Wygładź zmianę wartości z filtrem wykładniczym."""
+    if elapsed <= 0.0 or time_constant <= 0.0:
+        return target
+    blend = 1.0 - math.exp(-elapsed / time_constant)
+    return current + (target - current) * blend
+
+
+def read_motion_command(controller, state, controls, elapsed=cfg.LOOP_INTERVAL):
     """Odczytaj sterowanie i zmapuj je na komendę ruchu."""
     stick_x, stick_y = get_left_stick(controller)
     right_x, right_y = get_right_stick(controller)
     shifting = get_r1(controller)
 
-    body_x, body_y = ((right_y * cfg.BODY_SHIFT_MAX, right_x * cfg.BODY_SHIFT_MAX)
-                      if shifting else (0.0, 0.0))
+    target_body_x, target_body_y = (
+        (right_y * cfg.BODY_SHIFT_MAX, right_x * cfg.BODY_SHIFT_MAX)
+        if shifting else (0.0, 0.0))
     turn = 0.0 if shifting else right_x
-    body_roll, body_pitch = ((stick_x * cfg.BODY_TILT_MAX, stick_y * cfg.BODY_TILT_MAX)
-                             if shifting else (0.0, 0.0))
+    target_body_roll, target_body_pitch = (
+        (stick_x * cfg.BODY_TILT_MAX, stick_y * cfg.BODY_TILT_MAX)
+        if shifting else (0.0, 0.0))
+    smoothing = cfg.BODY_POSE_SMOOTHING_SECONDS
+    body_x = smooth_toward(controls.body_shift[0], target_body_x, elapsed, smoothing)
+    body_y = smooth_toward(controls.body_shift[1], target_body_y, elapsed, smoothing)
+    body_roll = smooth_toward(controls.body_tilt[0], target_body_roll, elapsed, smoothing)
+    body_pitch = smooth_toward(controls.body_tilt[1], target_body_pitch, elapsed, smoothing)
     if shifting:
         state = {**state, "turn": 0.0}
         stick_x = stick_y = 0.0
@@ -56,23 +73,40 @@ def read_motion_command(controller, state, controls):
     controls.previous_dpad = dpad
 
     rest_button = get_rest_button(controller)
+    slow_pose_transition = False
     if rest_button and not controls.previous_rest_button:
         requested_height = cfg.REST_HEIGHT
+        slow_pose_transition = True
     controls.previous_rest_button = rest_button
 
     command = MotionCommand(
         x=stick_x, y=stick_y, turn=turn, z_height=requested_height,
         body_x=body_x, body_y=body_y,
         body_roll=body_roll, body_pitch=body_pitch,
+        slow_pose_transition=slow_pose_transition,
     )
     return command, state
 
 
+def send_servo_angles(sock, angles):
+    active_angles = {sid: angle for sid, angle in angles.items()
+                     if sid in cfg.ACTIVE_SERVO_IDS}
+    send_servos(sock, active_angles, precision=1)
+    return active_angles
+
+
 def send_frame(sock, frame):
-    angles = {sid: angle for sid, angle in frame["servos"].items()
-              if sid in cfg.ACTIVE_SERVO_IDS}
-    send_servos(sock, angles, precision=1)
-    return angles
+    return send_servo_angles(sock, frame["servos"])
+
+
+def interpolate_servo_angles(start_angles, target_angles, progress):
+    """Interpoluj kąty z łagodnym startem i zatrzymaniem."""
+    progress = max(0.0, min(1.0, progress))
+    eased = progress * progress * (3.0 - 2.0 * progress)
+    return {
+        sid: start_angles.get(sid, target) + (target - start_angles.get(sid, target)) * eased
+        for sid, target in target_angles.items()
+    }
 
 
 def calculate_motion_step(state, command, elapsed, controls):
@@ -108,13 +142,15 @@ def main_loop(controller, sock):
     controls = ControlState()
     previous_gait_button = False
     previous_walk_button = False
-    send_frame(sock, calculate_frame())
+    last_angles = send_frame(sock, calculate_frame())
+    transition_start_angles = None
+    transition_start_time = None
     last_time = time.monotonic()
     while True:
         current_time = time.monotonic()
         elapsed = current_time - last_time
         last_time = current_time
-        command, state = read_motion_command(controller, state, controls)
+        command, state = read_motion_command(controller, state, controls, elapsed)
         gait_button = get_gait_button(controller)
         if gait_button and not previous_gait_button:
             state = {**state, "requested_gait": next_gait(state["requested_gait"])}
@@ -128,6 +164,7 @@ def main_loop(controller, sock):
             command = MotionCommand(
                 x=0.0, y=0.0, turn=0.0, z_height=cfg.z_height,
                 body_x=0.0, body_y=0.0, body_roll=0.0, body_pitch=0.0,
+                slow_pose_transition=True,
             )
         phase = state["phase"]
         was_moving = state["ramp"] > 0
@@ -141,7 +178,21 @@ def main_loop(controller, sock):
         if reset_to_initial:
             print("Przywrócono pozycję początkową.")
         state = next_state
-        angles = send_frame(sock, frame)
+        if command.slow_pose_transition or reset_to_initial:
+            transition_start_angles = last_angles.copy()
+            transition_start_time = current_time
+        if transition_start_angles is None:
+            angles = send_frame(sock, frame)
+        else:
+            duration = max(0.0, cfg.POSE_TRANSITION_SECONDS)
+            progress = (1.0 if duration == 0.0 else
+                        (current_time - transition_start_time) / duration)
+            angles = send_servo_angles(
+                sock, interpolate_servo_angles(transition_start_angles, frame["servos"], progress))
+            if progress >= 1.0:
+                transition_start_angles = None
+                transition_start_time = None
+        last_angles = angles
         # if was_moving or state["ramp"] > 0:
         #     print(f"gait_phase: {phase:.3f}, ramp: {state['ramp']:.3f}, angles: {angles}")
         time.sleep(cfg.LOOP_INTERVAL)
