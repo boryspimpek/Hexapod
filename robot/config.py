@@ -122,7 +122,7 @@ LEG_PHASE_OFFSET = {
 
 # Wybór chodu i część cyklu spędzona z nogą w powietrzu.
 GAITS = {
-    "trot": {"swing_ratio": 0.5, "phase_offsets": LEG_PHASE_OFFSET},
+    "trot": {"swing_ratio": 0.3, "phase_offsets": LEG_PHASE_OFFSET},
     "crawl": {
         "swing_ratio": 0.25,
         # Przesunięcie korpusu przeciwnie do unoszonej nogi [mm]:
