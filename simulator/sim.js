@@ -284,7 +284,8 @@ function drawFrame(frame) {
       positionSegment(leg.segments[i], points[i], points[i + 1], [6, 5.5, 4.5][i]);
       leg.joints[i].position.copy(points[i]);
       const cell = leg.tableRow.children[i + 1];
-      cell.textContent = result.servo_angles[["coxa", "femur", "tibia"][i]].toFixed(1);
+      const jointName = ["coxa", "femur", "tibia"][i];
+      cell.textContent = result.geometric_angles[jointName].toFixed(1);
       cell.style.color = result.limited[i] ? "var(--warning)" : "";
     }
     const limited = result.limited.some(Boolean);

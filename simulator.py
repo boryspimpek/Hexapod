@@ -130,6 +130,7 @@ def simulate(data):
             limited.append(abs(command - apply_offsets(spec[cfg.SERVO_ID], raw)) > 1e-8)
             geometric.append(remove_offsets(spec[cfg.SERVO_ID], command))
         leg["points"] = joint_points(name, geometric, body_offset, body_rotation)
+        leg["geometric_angles"] = dict(zip(JOINT_NAMES, geometric))
         leg["target_world"] = world_point(name, leg["target"], body_offset, body_rotation)
         leg["limited"] = limited
     frame.update(state)
