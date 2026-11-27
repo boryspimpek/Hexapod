@@ -89,9 +89,7 @@ LEGS = {
     },
 }
 
-# Zmierzone (oryginalne) limity wszystkich serw, w przestrzeni serwa, bez trimów.
-# Używa ich symulator. Limity w LEGS mogą być z nich pochodną (np. femury
-# zwężone pod trimy), a przy zmianie trimu przeliczasz je właśnie z tej tabeli.
+# Zmierzone (oryginalne) limity wszystkich serw, w przestrzeni serwa, Limity w LEGS mogą być z nich pochodną (np. femury zwężone pod trimy).
 MEASURED_LIMITS = {
     1:  (35, 160),   # lf coxa
     2:  (40, 180),   # lf femur
@@ -107,6 +105,24 @@ MEASURED_LIMITS = {
     12: (0, 150),    # rr tibia
 }
 
+# Limity symulatora: przestrzeń serwa, BEZ trimów, wpisane ręcznie.
+# Femury: wspólny zakres logiczny 47-183 (jak na robocie po zwężeniu limitów).
+# Odwrócone (5, 8) mają odbicie: 180 - 183 = -3, 180 - 47 = 133.
+# Po zmianie trimu femurów przelicz je od nowa z MEASURED_LIMITS.
+SIM_LIMITS = {
+    1:  (35, 160),   # lf coxa
+    2:  (47, 183),   # lf femur
+    3:  (0, 150),    # lf tibia
+    4:  (20, 145),   # rf coxa
+    5:  (-3, 133),   # rf femur (odwrócony)
+    6:  (30, 180),   # rf tibia
+    7:  (20, 145),   # lr coxa
+    8:  (-3, 133),   # lr femur (odwrócony)
+    9:  (30, 180),   # lr tibia
+    10: (35, 160),   # rr coxa
+    11: (47, 183),   # rr femur
+    12: (0, 150),    # rr tibia
+}
 
 ###################################################### --- Geometria --- ####################################################################
 

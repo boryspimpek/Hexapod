@@ -137,7 +137,7 @@ def simulate(data):
             inverted = spec[cfg.INVERTED]
             # Symulator: bez trimu, z oryginalnymi (zmierzonymi) limitami.
             requested = 180.0 - raw if inverted else raw
-            lo, hi = cfg.MEASURED_LIMITS[spec[cfg.SERVO_ID]]
+            lo, hi = cfg.SIM_LIMITS[spec[cfg.SERVO_ID]]
             command = max(lo, min(hi, requested))
             limited.append(abs(command - requested) > 1e-8)
             geometric.append(180.0 - command if inverted else command)
