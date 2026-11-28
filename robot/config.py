@@ -165,7 +165,7 @@ LEG_PHASE_OFFSET = {
 GAITS = {
     "trot": {"swing_ratio": 0.3, "phase_offsets": LEG_PHASE_OFFSET},
     "crawl": {
-        "swing_ratio": 0.25,
+        "swing_ratio": 0.15,
         # Przesunięcie korpusu przeciwnie do unoszonej nogi [mm]:
         # (przód/tył, lewo/prawo). (0.0, 0.0) wyłącza efekt.
         "body_shift": (30.0, 30.0),
