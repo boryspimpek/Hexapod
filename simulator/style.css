@@ -385,3 +385,43 @@ th:first-child {
 .view-mode input {position: absolute; opacity: 0; pointer-events: none;}
 .view-mode label:has(input:checked) {background: var(--line); color: var(--text);}
 .view-mode label:has(input:focus-visible) {outline: 2px solid var(--accent);}
+
+#margin-chart {
+  position: static;
+  display: block;
+  width: 100%;
+  height: 140px;
+  margin: 4px 0 12px;
+}
+
+#stability-stats {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+#stability-stats caption {
+  margin-bottom: 4px;
+  color: var(--muted);
+  text-align: left;
+}
+
+#stability-stats th {
+  padding: 3px 0;
+  color: var(--muted);
+  font-weight: 400;
+  text-align: left;
+}
+
+#stability-stats td {
+  padding: 3px 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#stability-stats td.ok::before,
+#stability-stats td.near::before,
+#stability-stats td.out::before {content: "■ ";}
+#stability-stats td.ok::before {color: var(--accent);}
+#stability-stats td.near::before {color: #ffb347;}
+#stability-stats td.out::before {color: var(--warning);}

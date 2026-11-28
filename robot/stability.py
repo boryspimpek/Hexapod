@@ -65,6 +65,22 @@ def stability_margin(polygon, point):
     return distance if inside else -distance
 
 
+def stability_metric(settings):
+    """Which number describes a gait: "line" when two legs swing at once.
+
+    Then support collapses to a line (trot) and the distance from it matters;
+    otherwise ("polygon", e.g. crawl) the margin inside the triangle does.
+    """
+    ratio = settings["swing_ratio"]
+    offsets = list(settings["phase_offsets"].values())
+    for i, a in enumerate(offsets):
+        for b in offsets[i + 1:]:
+            gap = (a - b) % 1.0
+            if min(gap, 1.0 - gap) < ratio - 1e-9:
+                return "line"
+    return "polygon"
+
+
 def support_state(feet, ground, com):
     """Contacts, support polygon and CoM margin for one frame.
 

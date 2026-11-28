@@ -1,7 +1,8 @@
 """Support polygon, contact detection and CoM stability margin."""
 import unittest
 
-from robot.stability import convex_hull, stability_margin, support_feet, support_state
+from robot.stability import (convex_hull, stability_margin, stability_metric,
+                             support_feet, support_state)
 from simulator import simulate
 
 SQUARE = [(0, 0), (100, 0), (100, 100), (0, 100)]
@@ -43,6 +44,15 @@ class GeometryTests(unittest.TestCase):
 
 
 class SimulatorSupportTests(unittest.TestCase):
+    def test_metric_follows_overlapping_swings(self):
+        self.assertEqual(simulate({"gait": "trot"})["support"]["metric"], "line")
+        self.assertEqual(simulate({"gait": "crawl", "requested_gait": "crawl"})["support"]["metric"],
+                         "polygon")
+        self.assertEqual(stability_metric({"swing_ratio": .2, "phase_offsets":
+                                           {"lf": 0, "rf": .5, "lr": .75, "rr": .25}}), "polygon")
+        self.assertEqual(stability_metric({"swing_ratio": .3, "phase_offsets":
+                                           {"lf": 0, "rf": .5, "lr": .75, "rr": .25}}), "line")
+
     def test_standing_has_four_feet_and_centered_com(self):
         support = simulate({})["support"]
         self.assertEqual(sorted(support["feet"]), ["lf", "lr", "rf", "rr"])

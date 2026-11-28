@@ -18,7 +18,7 @@ from robot.motion import step_motion, JOINT_NAMES
 from robot.body import body_center, pose_point
 from robot.odometry import read_odometry, advance_odometry
 from robot.gait import gait_settings, next_gait
-from robot.stability import support_state
+from robot.stability import support_state, stability_metric
 
 ASSETS = Path(__file__).resolve().parent / "simulator"
 PARAMETER_SPECS = {
@@ -169,6 +169,7 @@ def simulate(data):
     frame["support"] = support_state(
         {name: leg["points"][3] for name, leg in frame["legs"].items()},
         parameters["z_height"], frame["body"]["center"])
+    frame["support"]["metric"] = stability_metric(gait_settings(frame["gait"]))
     frame["odometry"] = advance_odometry(
         odometry, {name: leg["target_world"] for name, leg in frame["legs"].items()},
         frame["sample_phase"], gait=frame["gait"], moving=(parameters[f"{frame['gait']}_gait_speed"] > 0

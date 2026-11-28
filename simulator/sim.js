@@ -239,6 +239,7 @@ document.getElementById("reset-position").addEventListener("click", () => {
   delete state.odometry;
   previousWorldPosition = null;
   clearTopView();
+  resetMarginChart();
 });
 followCamera.addEventListener("change", () => {
   if (followCamera.checked && previousWorldPosition) {
@@ -338,6 +339,9 @@ function drawFrame(frame) {
   const support = frame.support;
   drawSupport(support);
   drawTopView(frame);
+  recordMargin(frame);
+  updateStabilityStats();
+  drawMarginChart();
   status.className = limitedCount || support.level === "out" ? "warning" : "";
   status.textContent = `Gait ${frame.gait}${frame.gait !== frame.requested_gait ? ` → ${frame.requested_gait}` : ""}
 Phase ${frame.phase.toFixed(2)}
@@ -345,8 +349,7 @@ Ramp ${(frame.ramp * 100).toFixed(0)}%
 Roll ${frame.body_rotation[0].toFixed(1)}° · Pitch ${frame.body_rotation[1].toFixed(1)}°`;
   status.textContent += `\nX ${(position[0] - cx).toFixed(0)} mm · Y ${(position[1] - cy).toFixed(0)} mm
 Heading ${THREE.MathUtils.radToDeg(yaw).toFixed(1)}°`;
-  const margin = support.margin === null ? "—" : `${support.margin.toFixed(1)} mm`;
-  status.textContent += `\nSupport ${support.feet.length} legs (${support.kind}) · CoM margin ${margin}`;
+  status.textContent += `\nSupport ${support.feet.length} legs · ${formatReading(stabilityReading(support))}`;
 }
 function drawSupport(support) {
   // Lines and points have no area: always statically unstable (trot is dynamic).
@@ -576,13 +579,196 @@ function drawTopView(frame) {
   // Readout.
   const big = full ? 18 : 12, small = full ? 13 : 11, left = full ? 24 : 12, top = full ? 34 : 20;
   g.font = `600 ${big}px Segoe UI, system-ui, sans-serif`; g.fillStyle = color;
-  const margin = support.margin === null ? "—" : `${support.margin.toFixed(1)} mm`;
-  g.fillText(`CoM margin ${margin}`, left, top);
+  g.fillText(formatReading(stabilityReading(support)), left, top);
   g.font = `${small}px Segoe UI, system-ui, sans-serif`; g.fillStyle = "#8a94a3";
   g.fillText(`${support.feet.length} legs · ${support.kind} · ${frame.gait} · grid ${spacing} mm`,
              left, top + small + 6);
   if (full) g.fillText("Wheel: zoom · drag: pan · V: switch view", left, height - 20);
 }
+// One number per moment. Gaits with two legs swinging together (trot): distance
+// of the CoM from the support line on 2 legs. Others (crawl): signed margin
+// inside the triangle on 3 legs. On 4 legs the robot is comfortably supported: "—".
+function stabilityReading(support) {
+  if (support.feet.length >= 4) return {label: "4 legs, CoM", value: null};
+  if (support.kind === "line") return {label: "CoM to line", value: Math.abs(support.margin)};
+  if (support.kind === "polygon") return {label: "CoM margin", value: support.margin};
+  return {label: "CoM", value: null};
+}
+const formatReading = reading =>
+  `${reading.label} ${reading.value === null ? "—" : `${reading.value.toFixed(1)} mm`}`;
+
+// Chart over one gait cycle (x = gait phase, so leg exchanges line up).
+const marginChart = document.getElementById("margin-chart");
+const chart2d = marginChart.getContext("2d");
+const CHART_MODES = {
+  line: {title: "CoM distance from line vs gait phase", range: [0, 40], ticks: [0, 10, 20, 30, 40],
+         keep: s => s.kind === "line",
+         // On 4 legs nothing is at risk: plot 0 so the curve stays continuous.
+         plotValue: s => (s.kind === "line" ? s.value : s.legs >= 4 ? 0 : null)},
+  polygon: {title: "CoM margin (3 legs) vs gait phase", range: [-20, 80], ticks: [-20, 0, 20, 40, 60, 80],
+            keep: s => s.kind === "polygon" && s.legs === 3,
+            plotValue: s => (s.kind === "polygon" && s.legs === 3 ? s.value : null)},
+};
+let cycleSamples = [], previousCycle = [], lastSamplePhase = null, chartGait = null;
+let chartMode = "polygon";
+let chartHover = null;  // hovered phase, or null
+
+function resetMarginChart() {
+  cycleSamples = []; previousCycle = []; lastSamplePhase = null;
+}
+function recordMargin(frame) {
+  const support = frame.support;
+  if (frame.gait !== chartGait) { resetMarginChart(); chartGait = frame.gait; }
+  chartMode = support.metric;
+  if (!(frame.ramp > 0)) return;  // standing: nothing to plot
+  const phase = frame.sample_phase;
+  if (lastSamplePhase !== null && phase < lastSamplePhase - 0.5) {
+    // Wrapped into a new cycle; keep it as "previous" only if it was (almost) complete.
+    const span = cycleSamples.length ? cycleSamples.at(-1).phase - cycleSamples[0].phase : 0;
+    if (span >= 0.9) previousCycle = cycleSamples;
+    cycleSamples = [];
+  }
+  lastSamplePhase = phase;
+  cycleSamples.push({phase, value: stabilityReading(support).value, kind: support.kind,
+                     legs: support.feet.length, warning: support.warning_margin});
+}
+function updateStabilityStats() {
+  const complete = previousCycle.length > 0;
+  const samples = complete ? previousCycle : cycleSamples;
+  const set = (id, text) => { document.getElementById(id).textContent = text; };
+  set("chart-title", CHART_MODES[chartMode].title);
+  set("stats-caption", complete ? "Last full cycle"
+    : samples.length ? "Current cycle (in progress)" : "Walk to collect data");
+  const share = count => samples.length ? `${(100 * count / samples.length).toFixed(0)} %` : "—";
+  const kept = samples.filter(CHART_MODES[chartMode].keep);
+  const pick = better => kept.reduce((best, s) => (!best || better(s, best) ? s : best), null);
+  const cell = document.getElementById("stat-a");
+  if (chartMode === "line") {
+    const worst = pick((s, best) => s.value > best.value);
+    set("stat-a-label", "Max CoM distance from line");
+    set("stat-a", worst ? `${worst.value.toFixed(1)} mm` : "—");
+    set("stat-c-label", "Cycle on 2 legs");
+    set("stat-c", share(kept.length));
+    cell.className = "";
+  } else {
+    const worst = pick((s, best) => s.value < best.value);
+    set("stat-a-label", "Min CoM margin (3 legs)");
+    set("stat-a", worst ? `${worst.value.toFixed(1)} mm` : "—");
+    set("stat-c-label", "Cycle with margin < 10 mm");
+    set("stat-c", share(kept.filter(s => s.value < s.warning).length));
+    cell.className = !worst ? "" : worst.value <= 0 ? "out" : worst.value < worst.warning ? "near" : "ok";
+  }
+}
+function drawMarginChart() {
+  const ratio = Math.min(devicePixelRatio, 2);
+  const width = marginChart.clientWidth, height = marginChart.clientHeight;
+  if (!width) return;
+  if (marginChart.width !== Math.round(width * ratio) || marginChart.height !== Math.round(height * ratio)) {
+    marginChart.width = Math.round(width * ratio);
+    marginChart.height = Math.round(height * ratio);
+  }
+  const g = chart2d;
+  g.setTransform(ratio, 0, 0, ratio, 0, 0);
+  g.clearRect(0, 0, width, height);
+  const mode = CHART_MODES[chartMode];
+  const left = 30, right = 8, top = 8, bottom = 20;
+  const plotW = width - left - right, plotH = height - top - bottom;
+  const [lo, hi] = mode.range;
+  const px = phase => left + phase * plotW;
+  const py = mm => top + (hi - clamp(mm, lo, hi)) / (hi - lo) * plotH;
+  g.font = "10px Segoe UI, system-ui, sans-serif";
+  if (chartMode === "polygon") {
+    // Area below zero = CoM outside the support triangle.
+    g.fillStyle = "rgba(255, 107, 87, 0.08)";
+    g.fillRect(left, py(0), plotW, py(lo) - py(0));
+  }
+  // Recessive grid and axis labels.
+  g.lineWidth = 1; g.fillStyle = "#8a94a3";
+  g.textAlign = "right"; g.textBaseline = "middle";
+  for (const mm of mode.ticks) {
+    g.strokeStyle = "#232a34";
+    g.beginPath(); g.moveTo(left, py(mm)); g.lineTo(left + plotW, py(mm)); g.stroke();
+    g.fillText(String(mm), left - 5, py(mm));
+  }
+  g.textAlign = "center"; g.textBaseline = "top";
+  for (const phase of [0, 0.25, 0.5, 0.75, 1]) {
+    g.strokeStyle = "#232a34";
+    g.beginPath(); g.moveTo(px(phase), top); g.lineTo(px(phase), top + plotH); g.stroke();
+    g.fillText(String(phase), px(phase), top + plotH + 5);
+  }
+  const warning = (cycleSamples[0] || previousCycle[0])?.warning ?? 10;
+  if (chartMode === "line") {
+    // Gray bands: phases on 4 legs, where the plotted 0 means "supported".
+    g.fillStyle = "rgba(143, 163, 189, 0.10)";
+    let run = null;
+    for (const s of [...cycleSamples, null]) {
+      if (s && s.legs >= 4) { run = run ? [run[0], s.phase] : [s.phase, s.phase]; continue; }
+      if (run) g.fillRect(px(run[0]), top, Math.max(2, px(run[1]) - px(run[0])), plotH);
+      run = null;
+    }
+  }
+  if (chartMode === "polygon") {
+    // Reference lines: 0 (edge of the triangle) and the warning margin.
+    g.strokeStyle = cssColor(SUPPORT_COLORS.out);
+    g.beginPath(); g.moveTo(left, py(0)); g.lineTo(left + plotW, py(0)); g.stroke();
+    g.strokeStyle = cssColor(SUPPORT_COLORS.near); g.setLineDash([4, 3]);
+    g.beginPath(); g.moveTo(left, py(warning)); g.lineTo(left + plotW, py(warning)); g.stroke();
+    g.setLineDash([]);
+    g.textAlign = "right"; g.textBaseline = "bottom"; g.fillStyle = "#8a94a3";
+    g.fillText(`${warning} mm`, left + plotW - 2, py(warning) - 1);
+  }
+  // Only the moments the metric describes; gaps where it has no value.
+  const visible = s => mode.plotValue(s) !== null;
+  const plot = (samples, color, lineWidth) => {
+    g.strokeStyle = color; g.lineWidth = lineWidth; g.lineJoin = "round";
+    g.beginPath();
+    let previous = null;
+    for (const s of samples) {
+      if (!visible(s)) { previous = null; continue; }
+      if (previous && s.phase - previous.phase < 0.05) g.lineTo(px(s.phase), py(mode.plotValue(s)));
+      else g.moveTo(px(s.phase), py(mode.plotValue(s)));
+      previous = s;
+    }
+    g.stroke();
+  };
+  plot(cycleSamples, cssColor(SUPPORT_COLORS.ok), 2);
+  const latest = cycleSamples.at(-1);
+  if (latest && visible(latest)) {
+    g.fillStyle = cssColor(SUPPORT_COLORS.ok); g.strokeStyle = "#161b23"; g.lineWidth = 2;
+    g.beginPath(); g.arc(px(latest.phase), py(mode.plotValue(latest)), 4, 0, 2 * Math.PI); g.fill(); g.stroke();
+  }
+  // Hover: crosshair + readout of the nearest sample of the current cycle.
+  if (chartHover !== null) {
+    const nearest = samples => samples.filter(s => visible(s) && Math.abs(s.phase - chartHover) < 0.02)
+      .reduce((best, s) => (!best || Math.abs(s.phase - chartHover) < Math.abs(best.phase - chartHover)
+                            ? s : best), null);
+    const sample = nearest(cycleSamples);
+    const x = px(chartHover);
+    g.strokeStyle = "#8a94a3"; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(x, top); g.lineTo(x, top + plotH); g.stroke();
+    let text = `phase ${chartHover.toFixed(2)} · 4 legs or no data`;
+    if (sample) {
+      g.fillStyle = "#e4e8ee"; g.strokeStyle = "#161b23"; g.lineWidth = 2;
+      g.beginPath(); g.arc(px(sample.phase), py(mode.plotValue(sample)), 4, 0, 2 * Math.PI); g.fill(); g.stroke();
+      text = sample.legs >= 4 ? `phase ${sample.phase.toFixed(2)} · 4 legs, supported`
+        : `phase ${sample.phase.toFixed(2)} · ${sample.value.toFixed(1)} mm · ${sample.legs} legs`;
+    }
+    g.font = "11px Segoe UI, system-ui, sans-serif";
+    const boxW = g.measureText(text).width + 12;
+    const boxX = clamp(x - boxW / 2, left, left + plotW - boxW);
+    g.fillStyle = "rgba(14, 17, 22, 0.92)"; g.fillRect(boxX, top, boxW, 18);
+    g.fillStyle = "#e4e8ee"; g.textAlign = "left"; g.textBaseline = "middle";
+    g.fillText(text, boxX + 6, top + 9);
+  }
+  g.textAlign = "left"; g.textBaseline = "alphabetic";
+}
+marginChart.addEventListener("pointermove", event => {
+  const rect = marginChart.getBoundingClientRect();
+  chartHover = clamp((event.clientX - rect.left - 30) / (rect.width - 38), 0, 1);
+  drawMarginChart();
+});
+marginChart.addEventListener("pointerleave", () => { chartHover = null; drawMarginChart(); });
+
 // One request at a time; each tab owns its motion state. Fixed 20 ms robot timestep.
 async function tick() {
   const started = performance.now();
