@@ -47,6 +47,10 @@ REST_HEIGHT = 0.0  # wysokość spoczynkowa [mm]
 
 POSE_TRANSITION_SECONDS = 1.0  # czas płynnego przejścia po REST/WALK [s]
 
+# Symulator: stabilność statyczna (CoM = środek geometryczny korpusu).
+CONTACT_TOLERANCE = 2.0  # stopa uznana za podparcie, gdy jest najwyżej tyle nad podłożem [mm]
+STABILITY_WARNING_MARGIN = 10.0  # margines CoM od krawędzi poniżej którego ostrzegamy [mm]
+
 
 
 
@@ -129,10 +133,10 @@ SIM_LIMITS = {
 # Punkty mocowania coxa w układzie robota (x, y, z) [mm].
 # Używane do wizualizacji i geometrii skrętu (środek i promienie stóp).
 LEG_ORIGINS = {
-    "lf": (80, 30, 0),
-    "rf": (80, -30, 0),
-    "lr": (0, 30, 0),
-    "rr": (0, -30, 0),
+    "lf": (89, 69, 0),
+    "rf": (89, -69, 0),
+    "lr": (-89, 69, 0),
+    "rr": (-89, -69, 0),
 }
 
 # Obrót mocowania coxa od lokalnej osi +Y (na zewnątrz) w stronę +X.

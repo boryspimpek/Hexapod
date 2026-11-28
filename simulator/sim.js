@@ -72,6 +72,33 @@ Object.values(LEGS).forEach((leg) => {
   robotModel.add(leg.footMesh);
 });
 
+// Support polygon and CoM projection (drawn in robot frame, on the ground plane).
+const SUPPORT_COLORS = {ok: 0x35d0ba, near: 0xffb347, out: 0xff6b57};
+const supportGroup = new THREE.Group();
+robotModel.add(supportGroup);
+const overlay = {transparent: true, depthWrite: false};
+const supportFillGeometry = new THREE.BufferGeometry();
+supportFillGeometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(12), 3));
+supportFillGeometry.setIndex([0, 1, 2, 0, 2, 3]);
+const supportFill = new THREE.Mesh(supportFillGeometry,
+  new THREE.MeshBasicMaterial({...overlay, opacity: 0.18, side: THREE.DoubleSide}));
+const supportOutlineGeometry = new THREE.BufferGeometry();
+supportOutlineGeometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(12), 3));
+const supportOutline = new THREE.LineLoop(supportOutlineGeometry,
+  new THREE.LineBasicMaterial({...overlay, opacity: 0.9}));
+const supportLine = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 1, 8),
+  new THREE.MeshBasicMaterial({...overlay, opacity: 0.8}));
+const comMarker = new THREE.Mesh(new THREE.SphereGeometry(7, 16, 12),
+  new THREE.MeshBasicMaterial({color: 0xffffff, depthTest: false, transparent: true}));
+const plumbGeometry = new THREE.BufferGeometry();
+plumbGeometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(6), 3));
+const plumbLine = new THREE.Line(plumbGeometry,
+  new THREE.LineDashedMaterial({...overlay, color: 0xffffff, opacity: 0.6, dashSize: 6, gapSize: 4}));
+const comGroundMarker = new THREE.Mesh(new THREE.RingGeometry(6, 10, 24),
+  new THREE.MeshBasicMaterial({...overlay, opacity: 0.95, side: THREE.DoubleSide}));
+[supportFill, supportOutline, supportLine, comGroundMarker, plumbLine, comMarker]
+  .forEach((object, index) => { object.renderOrder = 10 + index; supportGroup.add(object); });
+
 const worldUp = new THREE.Vector3(0, 1, 0);
 
 function positionSegment(mesh, start, end, radius) {
@@ -206,15 +233,18 @@ let state = {phase: 0, ramp: 0, direction: [0, 0], turn: 0, previous_dpad: 0};
 let resetVersion = 0;
 let previousWorldPosition = null;
 const followCamera = document.getElementById("follow-camera");
+const showSupport = document.getElementById("show-support");
 document.getElementById("reset-position").addEventListener("click", () => {
   resetVersion++;
   delete state.odometry;
   previousWorldPosition = null;
+  clearTopView();
 });
 followCamera.addEventListener("change", () => {
   if (followCamera.checked && previousWorldPosition) {
     cameraTarget.set(...previousWorldPosition, -40);
   }
+  if (followCamera.checked) viewCenter = null;
 });
 Object.values(LEGS).forEach(leg => {
   const row = document.createElement("tr");
@@ -305,13 +335,253 @@ function drawFrame(frame) {
     leg.footMesh.material = limited ? unreachableFootMaterial : footMaterial;
     leg.target.position.set(...result.target_world);
   });
-  status.className = limitedCount ? "warning" : "";
+  const support = frame.support;
+  drawSupport(support);
+  drawTopView(frame);
+  status.className = limitedCount || support.level === "out" ? "warning" : "";
   status.textContent = `Gait ${frame.gait}${frame.gait !== frame.requested_gait ? ` → ${frame.requested_gait}` : ""}
 Phase ${frame.phase.toFixed(2)}
 Ramp ${(frame.ramp * 100).toFixed(0)}%
 Roll ${frame.body_rotation[0].toFixed(1)}° · Pitch ${frame.body_rotation[1].toFixed(1)}°`;
   status.textContent += `\nX ${(position[0] - cx).toFixed(0)} mm · Y ${(position[1] - cy).toFixed(0)} mm
 Heading ${THREE.MathUtils.radToDeg(yaw).toFixed(1)}°`;
+  const margin = support.margin === null ? "—" : `${support.margin.toFixed(1)} mm`;
+  status.textContent += `\nSupport ${support.feet.length} legs (${support.kind}) · CoM margin ${margin}`;
+}
+function drawSupport(support) {
+  // Lines and points have no area: always statically unstable (trot is dynamic).
+  support.level = support.kind !== "polygon" ? "near"
+    : support.margin <= 0 ? "out"
+    : support.margin < support.warning_margin ? "near" : "ok";
+  supportGroup.visible = showSupport.checked;
+  if (!supportGroup.visible) return;
+  const color = SUPPORT_COLORS[support.level];
+  const ground = support.com_ground[2] + 0.5;
+  const vertices = support.polygon;
+  const isArea = vertices.length >= 3;
+  supportFill.visible = supportOutline.visible = isArea;
+  supportLine.visible = vertices.length === 2;
+  if (isArea) {
+    const fill = supportFillGeometry.attributes.position;
+    const outline = supportOutlineGeometry.attributes.position;
+    vertices.forEach(([x, y], i) => { fill.setXYZ(i, x, y, ground); outline.setXYZ(i, x, y, ground); });
+    fill.needsUpdate = outline.needsUpdate = true;
+    supportFillGeometry.setDrawRange(0, vertices.length === 3 ? 3 : 6);
+    supportOutlineGeometry.setDrawRange(0, vertices.length);
+    supportFillGeometry.computeBoundingSphere();
+    supportOutlineGeometry.computeBoundingSphere();
+  } else if (supportLine.visible) {
+    positionSegment(supportLine, new THREE.Vector3(...vertices[0], ground),
+                    new THREE.Vector3(...vertices[1], ground), 2.5);
+  }
+  supportFill.material.color.setHex(color);
+  supportOutline.material.color.setHex(color);
+  supportLine.material.color.setHex(color);
+  comGroundMarker.material.color.setHex(color);
+  comMarker.position.set(...support.com);
+  comGroundMarker.position.set(support.com_ground[0], support.com_ground[1], ground + 0.1);
+  plumbGeometry.attributes.position.setXYZ(0, ...support.com);
+  plumbGeometry.attributes.position.setXYZ(1, support.com_ground[0], support.com_ground[1], ground);
+  plumbGeometry.attributes.position.needsUpdate = true;
+  plumbGeometry.computeBoundingSphere();
+  plumbLine.computeLineDistances();
+}
+
+// 2D top view, +X up and +Y (left) to the left. Inset: robot axes, nose up.
+// Full screen: world axes from the odometry, so the robot walks and turns as in 3D.
+const topCanvas = document.getElementById("topview");
+const top2d = topCanvas.getContext("2d");
+const panel = document.getElementById("panel");
+const cssColor = hex => `#${hex.toString(16).padStart(6, "0")}`;
+const VIEW_MODES = ["3d", "inset", "2d"];
+let viewMode = "inset";
+let insetRange = 280;   // half-size of the inset [mm], eased to fit the feet
+let fullRange = 450;    // half of the shorter visible side in full screen [mm]
+let viewCenter = null;  // world [x, y] at the center of the full-screen view
+let viewScale = 1;      // px per mm of the last full-screen draw
+let previousViewPosition = null;
+let lastFrame = null;
+let trailFrame = null;
+const comTrail = [];    // world CoM ground projections
+
+function clearTopView() {
+  comTrail.length = 0;
+  viewCenter = previousViewPosition = null;
+}
+function setViewMode(mode) {
+  viewMode = mode;
+  document.querySelectorAll('input[name="view-mode"]').forEach(input => {
+    input.checked = input.value === mode;
+  });
+  canvas.hidden = mode === "2d";
+  topCanvas.hidden = mode === "3d";
+  topCanvas.classList.toggle("full", mode === "2d");
+  if (lastFrame) drawTopView(lastFrame);
+}
+document.querySelectorAll('input[name="view-mode"]').forEach(input =>
+  input.addEventListener("change", () => { setViewMode(input.value); input.blur(); }));
+addEventListener("keydown", event => {
+  if (event.code !== "KeyV" || event.repeat || event.target.matches("input,button,select")) return;
+  setViewMode(VIEW_MODES[(VIEW_MODES.indexOf(viewMode) + 1) % VIEW_MODES.length]);
+});
+topCanvas.addEventListener("wheel", event => {
+  fullRange = clamp(fullRange * (1 + event.deltaY * 0.001), 150, 5000);
+  event.preventDefault();
+  if (lastFrame) drawTopView(lastFrame);
+}, {passive: false});
+let topDrag = null;
+topCanvas.addEventListener("pointerdown", event => {
+  if (event.button !== 0 && event.button !== 1) return;
+  event.preventDefault();
+  topDrag = {id: event.pointerId, x: event.clientX, y: event.clientY};
+  topCanvas.setPointerCapture(event.pointerId);
+});
+topCanvas.addEventListener("pointermove", event => {
+  if (!topDrag || event.pointerId !== topDrag.id || !viewCenter) return;
+  // Screen right is world -Y, screen down is world -X.
+  viewCenter[1] += (event.clientX - topDrag.x) / viewScale;
+  viewCenter[0] += (event.clientY - topDrag.y) / viewScale;
+  topDrag.x = event.clientX; topDrag.y = event.clientY;
+  if (lastFrame) drawTopView(lastFrame);
+});
+["pointerup", "pointercancel", "lostpointercapture"].forEach(type =>
+  topCanvas.addEventListener(type, event => {
+    if (topDrag && event.pointerId === topDrag.id) topDrag = null;
+  }));
+
+function updateTrails(frame, toWorld) {
+  const com = toWorld(frame.support.com_ground);
+  const last = comTrail[comTrail.length - 1];
+  if (!last || Math.hypot(com[0] - last[0], com[1] - last[1]) > 2) comTrail.push(com);
+  if (comTrail.length > 1500) comTrail.shift();
+}
+
+function drawTopView(frame) {
+  lastFrame = frame;
+  const [cx, cy] = frame.reference_center;
+  const {position, yaw} = frame.odometry;
+  const c = Math.cos(yaw), s = Math.sin(yaw);
+  const toWorld = p => [position[0] + c * (p[0] - cx) - s * (p[1] - cy),
+                        position[1] + s * (p[0] - cx) + c * (p[1] - cy)];
+  if (frame !== trailFrame) { updateTrails(frame, toWorld); trailFrame = frame; }
+  if (viewMode === "3d") return;
+  const full = viewMode === "2d";
+  const ratio = Math.min(devicePixelRatio, 2);
+  const width = topCanvas.clientWidth, height = topCanvas.clientHeight;
+  if (topCanvas.width !== Math.round(width * ratio) || topCanvas.height !== Math.round(height * ratio)) {
+    topCanvas.width = Math.round(width * ratio);
+    topCanvas.height = Math.round(height * ratio);
+  }
+  const g = top2d;
+  g.setTransform(ratio, 0, 0, ratio, 0, 0);
+  g.clearRect(0, 0, width, height);
+  const support = frame.support;
+  // Robot points -> view coordinates (world in full screen, robot-relative in the inset).
+  const toView = full ? toWorld : p => [p[0] - cx, p[1] - cy];
+  let center, scale, screenX, screenY;
+  if (full) {
+    if (!viewCenter) viewCenter = [...position];
+    else if (followCamera.checked && previousViewPosition) {
+      viewCenter[0] += position[0] - previousViewPosition[0];
+      viewCenter[1] += position[1] - previousViewPosition[1];
+    }
+    previousViewPosition = [...position];
+    // Keep the robot centered in the area left of the panel.
+    const visibleWidth = Math.max(200, width - panel.offsetWidth - 24);
+    center = viewCenter;
+    scale = viewScale = Math.min(visibleWidth, height) / 2 / fullRange;
+    screenX = visibleWidth / 2; screenY = height / 2;
+  } else {
+    previousViewPosition = null;
+    const extent = Math.max(...Object.values(frame.legs).flatMap(leg =>
+      leg.points.map(p => Math.max(Math.abs(p[0] - cx), Math.abs(p[1] - cy)))));
+    insetRange += (Math.max(200, extent * 1.4 + 30) - insetRange) * 0.05;
+    center = [0, 0];
+    scale = Math.min(width, height) / 2 / insetRange;
+    screenX = width / 2; screenY = height / 2 + 10;  // room for the header
+  }
+  const sx = q => screenX - (q[1] - center[1]) * scale;
+  const sy = q => screenY - (q[0] - center[0]) * scale;
+  const path = (points, close, map = toView) => {
+    g.beginPath();
+    points.forEach((p, i) => { const q = map(p); (i ? g.lineTo : g.moveTo).call(g, sx(q), sy(q)); });
+    if (close) g.closePath();
+  };
+  const view = q => q;
+  // Grid in view axes; the spacing grows when zoomed out.
+  const spacing = [50, 100, 250, 500, 1000].find(mm => mm * scale >= 18) || 1000;
+  const reach = Math.max(width, height) / scale;
+  g.lineWidth = 1;
+  for (let axis = 0; axis < 2; axis++) {
+    const from = Math.floor((center[axis] - reach) / spacing) * spacing;
+    for (let mm = from; mm <= center[axis] + reach; mm += spacing) {
+      g.strokeStyle = Math.abs(mm) < 1e-6 ? "#3a4452" : "#232a34";
+      const a = [0, 0], b = [0, 0];
+      a[axis] = b[axis] = mm;
+      a[1 - axis] = center[1 - axis] - reach; b[1 - axis] = center[1 - axis] + reach;
+      path([a, b], false, view); g.stroke();
+    }
+  }
+  // Body (roll/pitch ignored in plan view) and nose.
+  const [bx, by] = frame.body.center;
+  const [lx, ly] = frame.body.size;
+  g.fillStyle = "#2b3441"; g.strokeStyle = "#5f7794"; g.lineWidth = 1;
+  path([[bx + lx / 2, by + ly / 2], [bx + lx / 2, by - ly / 2],
+        [bx - lx / 2, by - ly / 2], [bx - lx / 2, by + ly / 2]], true);
+  g.fill(); g.stroke();
+  g.fillStyle = cssColor(SUPPORT_COLORS.ok);
+  const [nx, ny] = frame.body.nose;
+  path([[nx + 6, ny + 9], [nx + 6, ny - 9], [nx - 6, ny - 9], [nx - 6, ny + 9]], true); g.fill();
+  // Legs: segments, then feet (filled = contact, ring = swing, red = servo limit).
+  const middle = toView([cx, cy]);
+  const labelSize = full ? 12 : 10;
+  Object.entries(frame.legs).forEach(([name, leg]) => {
+    g.strokeStyle = "#8fa3bd"; g.lineWidth = full ? 4 : 3;
+    path(leg.points); g.stroke();
+    const foot = toView(leg.points[3]);
+    const contact = support.feet.includes(name);
+    const color = leg.limited.some(Boolean) ? cssColor(SUPPORT_COLORS.out) : "#e4e8ee";
+    g.beginPath(); g.arc(sx(foot), sy(foot), full ? 6 : 5, 0, 2 * Math.PI);
+    g.lineWidth = 2; g.strokeStyle = color; g.fillStyle = color;
+    contact ? g.fill() : g.stroke();
+    // Label outward from the body center, in screen space (works when rotated).
+    const outX = Math.sign(sx(foot) - sx(middle)) || 1, outY = Math.sign(sy(foot) - sy(middle)) || 1;
+    g.fillStyle = "#8a94a3"; g.font = `${labelSize}px Segoe UI, system-ui, sans-serif`;
+    g.textAlign = outX > 0 ? "left" : "right";
+    g.fillText(name.toUpperCase(), sx(foot) + outX * 9, sy(foot) + outY * 9 + labelSize / 3);
+    g.textAlign = "left";
+  });
+  // Support polygon / line above the body.
+  const color = cssColor(SUPPORT_COLORS[support.level]);
+  if (support.polygon.length >= 2) {
+    path(support.polygon, support.polygon.length >= 3);
+    if (support.polygon.length >= 3) {
+      g.globalAlpha = 0.22; g.fillStyle = color; g.fill(); g.globalAlpha = 1;
+    }
+    g.lineWidth = support.polygon.length === 2 ? 4 : 2; g.strokeStyle = color; g.stroke();
+  }
+  // Path of the CoM projection, above the body.
+  if (full && comTrail.length > 1) {
+    g.strokeStyle = "rgba(53, 208, 186, 0.6)"; g.lineWidth = 1.5;
+    path(comTrail, false, view); g.stroke();
+  }
+  // CoM projection: crosshair with a ring in the stability color.
+  const com = toView(support.com_ground);
+  const comX = sx(com), comY = sy(com), mark = full ? 1.3 : 1;
+  g.strokeStyle = color; g.lineWidth = 2.5;
+  g.beginPath(); g.arc(comX, comY, 8 * mark, 0, 2 * Math.PI); g.stroke();
+  g.strokeStyle = "#ffffff"; g.lineWidth = 1.5;
+  g.beginPath(); g.moveTo(comX - 12 * mark, comY); g.lineTo(comX + 12 * mark, comY);
+  g.moveTo(comX, comY - 12 * mark); g.lineTo(comX, comY + 12 * mark); g.stroke();
+  // Readout.
+  const big = full ? 18 : 12, small = full ? 13 : 11, left = full ? 24 : 12, top = full ? 34 : 20;
+  g.font = `600 ${big}px Segoe UI, system-ui, sans-serif`; g.fillStyle = color;
+  const margin = support.margin === null ? "—" : `${support.margin.toFixed(1)} mm`;
+  g.fillText(`CoM margin ${margin}`, left, top);
+  g.font = `${small}px Segoe UI, system-ui, sans-serif`; g.fillStyle = "#8a94a3";
+  g.fillText(`${support.feet.length} legs · ${support.kind} · ${frame.gait} · grid ${spacing} mm`,
+             left, top + small + 6);
+  if (full) g.fillText("Wheel: zoom · drag: pan · V: switch view", left, height - 20);
 }
 // One request at a time; each tab owns its motion state. Fixed 20 ms robot timestep.
 async function tick() {
@@ -353,7 +623,8 @@ function animate() {
     cameraTarget.y + cameraDistance * Math.cos(elevation) * Math.sin(azimuth),
     cameraTarget.z + cameraDistance * Math.sin(elevation));
   camera.lookAt(cameraTarget);
-  renderer.render(scene, camera); requestAnimationFrame(animate);
+  if (!canvas.hidden) renderer.render(scene, camera);
+  requestAnimationFrame(animate);
 }
 loadParameters().then(tick).catch(error => {
   status.className = "warning";
