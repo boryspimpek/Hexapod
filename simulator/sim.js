@@ -313,7 +313,6 @@ function drawFrame(frame) {
   nose.rotation.copy(body.rotation);
   nose.scale.set(12, 30, 18); nose.position.set(...frame.body.nose);
   grid.position.z = frame.ground;
-  let limitedCount = 0;
   Object.entries(frame.legs).forEach(([name, result]) => {
     const leg = LEGS[name];
     const points = result.points.map(p => new THREE.Vector3(...p));
@@ -331,7 +330,6 @@ function drawFrame(frame) {
       cell.classList.toggle("limited", result.limited[i]);
     }
     const limited = result.limited.some(Boolean);
-    limitedCount += Number(limited);
     leg.footMesh.position.copy(points[3]);
     leg.footMesh.material = limited ? unreachableFootMaterial : footMaterial;
     leg.target.position.set(...result.target_world);
@@ -342,14 +340,7 @@ function drawFrame(frame) {
   recordMargin(frame);
   updateStabilityStats();
   drawMarginChart();
-  status.className = limitedCount || support.level === "out" ? "warning" : "";
-  status.textContent = `Gait ${frame.gait}${frame.gait !== frame.requested_gait ? ` → ${frame.requested_gait}` : ""}
-Phase ${frame.phase.toFixed(2)}
-Ramp ${(frame.ramp * 100).toFixed(0)}%
-Roll ${frame.body_rotation[0].toFixed(1)}° · Pitch ${frame.body_rotation[1].toFixed(1)}°`;
-  status.textContent += `\nX ${(position[0] - cx).toFixed(0)} mm · Y ${(position[1] - cy).toFixed(0)} mm
-Heading ${THREE.MathUtils.radToDeg(yaw).toFixed(1)}°`;
-  status.textContent += `\nSupport ${support.feet.length} legs · ${formatReading(stabilityReading(support))}`;
+  status.hidden = true;  // shown only for connection / simulation errors
 }
 function drawSupport(support) {
   // Lines and points have no area: always statically unstable (trot is dynamic).
@@ -798,7 +789,7 @@ async function tick() {
     }
     drawFrame(frame);
   } catch (error) {
-    keys.clear(); status.className = "warning";
+    keys.clear(); status.className = "warning"; status.hidden = false;
     status.textContent = `Simulation error: ${error.message}`;
   } finally {
     setTimeout(tick, Math.max(0, 20 - (performance.now() - started)));
@@ -813,7 +804,7 @@ function animate() {
   requestAnimationFrame(animate);
 }
 loadParameters().then(tick).catch(error => {
-  status.className = "warning";
+  status.className = "warning"; status.hidden = false;
   status.textContent = `Simulation error: ${error.message}. Reload to retry.`;
 });
 animate();
